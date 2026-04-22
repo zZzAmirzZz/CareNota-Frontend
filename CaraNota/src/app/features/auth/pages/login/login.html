@@ -1,0 +1,123 @@
+<!-- login.component.html -->
+<div class="flex min-h-screen">
+
+  <!-- ── Left panel ── -->
+  <div class="hidden lg:flex w-1/2 bg-slate-900 flex-col justify-between p-12 relative overflow-hidden">
+    <!-- decorative circle -->
+    <div class="absolute -top-16 -right-16 w-64 h-64 rounded-full border border-teal-500/20"></div>
+
+    <!-- logo -->
+    <div class="flex items-center gap-3 z-10">
+      <div class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
+        <span class="material-icons text-white text-lg">medical_services</span>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div class="z-10">
+      <p class="text-teal-400 text-xs font-medium uppercase tracking-widest mb-4">AI Clinical Documentation</p>
+      <h1 class="text-white text-4xl font-bold leading-tight mb-4">
+        Smart care,<br>
+        <span class="text-teal-400 italic">less paperwork</span>
+      </h1>
+      <p class="text-slate-400 text-sm leading-relaxed max-w-xs">
+        Real-time transcription and AI-generated summaries — built for clinics across Egypt.
+      </p>
+    </div>
+
+    <!-- badges -->
+    <div class="flex gap-2 z-10">
+      <span class="text-xs font-medium px-3 py-1.5 rounded-full border border-white/10 text-white/60">Privacy-first</span>
+      <span class="text-xs font-medium px-3 py-1.5 rounded-full border border-white/10 text-white/60">Arabic support</span>
+      <span class="text-xs font-medium px-3 py-1.5 rounded-full border border-white/10 text-white/60">Offline-ready</span>
+    </div>
+  </div>
+
+  <!-- ── Right panel ── -->
+  <div class="flex-1 bg-white flex flex-col justify-center px-8 sm:px-12 lg:px-16 py-12">
+
+    <!-- header -->
+    <div class="mb-8">
+      <h2 class="text-3xl font-bold text-slate-900 mb-1">Welcome back</h2>
+      <p class="text-sm text-slate-500">{{ roleSubtitle }}</p>
+    </div>
+
+    <!-- role selector -->
+    <p class="text-xs font-medium uppercase tracking-widest text-slate-400 mb-3">I am a</p>
+    <div class="grid grid-cols-3 gap-2 mb-7">
+      <div
+        *ngFor="let r of roles"
+        (click)="selectRole(r.key)"
+        [ngClass]="getRoleCardClass(r.key)"
+        class="border-2 rounded-xl p-3 text-center cursor-pointer transition-all duration-150 flex flex-col items-center gap-1.5">
+        <span class="material-icons text-2xl">{{ r.icon }}</span>
+        <span class="text-xs font-medium">{{ r.label }}</span>
+      </div>
+    </div>
+
+    <!-- form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+
+      <!-- email -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-slate-700 mb-1.5">Email address</label>
+        <input
+          type="email"
+          formControlName="email"
+          placeholder="you@clinic.com"
+          class="w-full h-11 px-4 text-sm border-2 rounded-xl outline-none transition-all duration-150
+                 border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 placeholder:text-slate-300"
+          [class.border-red-400]="email.invalid && email.touched">
+        <p class="text-xs text-red-500 mt-1" *ngIf="email.touched && email.hasError('required')">Email is required</p>
+        <p class="text-xs text-red-500 mt-1" *ngIf="email.touched && email.hasError('email')">Enter a valid email</p>
+      </div>
+
+      <!-- password -->
+      <div class="mb-2">
+        <label class="block text-xs font-medium text-slate-700 mb-1.5">Password</label>
+        <div class="relative">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Enter your password"
+            class="w-full h-11 px-4 pr-11 text-sm border-2 rounded-xl outline-none transition-all duration-150
+                   border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 placeholder:text-slate-300"
+            [class.border-red-400]="password.invalid && password.touched">
+          <button type="button" (click)="showPassword = !showPassword"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <span class="material-icons text-lg">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        <p class="text-xs text-red-500 mt-1" *ngIf="password.touched && password.hasError('required')">Password is required</p>
+      </div>
+
+      <!-- forgot -->
+      <div class="text-right mb-5">
+        <a routerLink="/auth/forgot-password" class="text-xs font-medium text-teal-600 hover:text-teal-700">Forgot password?</a>
+      </div>
+
+      <!-- error banner -->
+      <div *ngIf="errorMessage" class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+        <span class="material-icons text-red-500 text-base">error_outline</span>
+        <span class="text-sm text-red-600">{{ errorMessage }}</span>
+      </div>
+
+      <!-- submit -->
+      <button
+        type="submit"
+        [disabled]="isLoading"
+        [ngClass]="getSubmitBtnClass()"
+        class="w-full h-11 rounded-xl text-white text-sm font-medium transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
+        <span *ngIf="!isLoading">Sign in as {{ selectedRole | titlecase }}</span>
+        <span *ngIf="isLoading" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+      </button>
+
+    </form>
+
+    <p class="text-center text-sm text-slate-400 mt-6">
+      Don't have an account?
+      <a routerLink="/auth/register" class="text-teal-600 font-medium hover:text-teal-700">Contact your administrator</a>
+    </p>
+
+  </div>
+</div>
