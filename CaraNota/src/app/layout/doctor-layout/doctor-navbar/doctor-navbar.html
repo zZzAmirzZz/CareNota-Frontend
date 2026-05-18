@@ -1,50 +1,83 @@
-<nav class="bg-white shadow-sm px-8 py-3 flex items-center justify-between rounded-2xl mx-4 mt-4">
+<!-- navbar.component.html -->
+<nav class="bg-sky-card  border border-gray-200 rounded-2xl px-6 mx-4 mt-4 h-14 flex items-center justify-between shadow-sm">
 
   <!-- Logo -->
-  <a routerLink="/doctor" class="flex items-center gap-2">
-    <div class="w-10 h-10 bg-sky-light rounded-xl flex items-center justify-center">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#2563eb" opacity="0.3"/>
-        <path d="M12 4C9.2 4 7 6.2 7 9c0 3.8 5 10 5 10s5-6.2 5-10c0-2.8-2.2-5-5-5z" fill="#2563eb"/>
-        <path d="M10 9h4M12 7v4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <span class="text-xl font-bold">
-      <span class="text-gray-700">Care</span><span class="text-carenota">Nota</span>
-    </span>
+  <a routerLink="/doctor" class="flex items-center gap-2 shrink-0">
+<img
+  src="images/logo_navbar.png"
+  alt="CareNota"
+  class="h-12 w-auto object-contain"
+  style="mix-blend-mode: multiply; filter: brightness(1.15) contrast(1.1);"
+/>
   </a>
 
   <!-- Search -->
-  <div class="flex items-center bg-gray-50 border border-gray-200 rounded-full px-4 py-2 w-72 gap-2">
-    <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-      <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
+  <div class="flex items-center bg-gray-50 border border-gray-200 rounded-full px-4 h-9 gap-2 w-60 focus-within:border-blue-400 focus-within:bg-white transition-all">
+    <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
     </svg>
-    <input type="text" placeholder="Search Here..."
-      class="bg-transparent outline-none text-sm text-gray-500 w-full" />
+    <input
+      type="text"
+      placeholder="Search patients, appointments…"
+      class="bg-transparent outline-none text-xs text-gray-500 w-full placeholder:text-gray-400"
+    />
   </div>
 
-  <!-- Healthcare Services Dropdown -->
-  <div class="relative">
-    <button (click)="toggleServices()"
-      class="flex items-center gap-2 text-gray-700 font-medium text-sm hover:text-carenota transition-colors">
-      Healthcare Services
-      <svg class="w-4 h-4 transition-transform" [class.rotate-180]="servicesOpen"
-        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-      </svg>
+  <!-- Right side -->
+  <div class="flex items-center gap-2">
+
+    <!-- Healthcare Services Dropdown -->
+    <div class="relative">
+      <button
+        (click)="toggleServices()"
+        class="flex items-center gap-1.5 text-gray-600 font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-gray-100 hover:text-blue-700 transition-colors"
+      >
+        Healthcare Services
+        <svg
+          class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
+          [class.rotate-180]="servicesOpen"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+
+      @if (servicesOpen) {
+        <div class="absolute top-10 right-0 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 w-52 z-50">
+          @for (s of services; track s.label) {
+            <div
+              class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer rounded-lg"
+              [routerLink]="s.route"
+              (click)="servicesOpen = false"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-200 shrink-0"></span>
+              {{ s.label }}
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Divider -->
+    <div class="w-px h-5 bg-gray-200 mx-1"></div>
+
+    <!-- Notifications -->
+    <div class="relative">
+      <button class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+      </button>
+      <span class="absolute top-0 right-0 w-2 h-2 bg-red-400 rounded-full border-2 border-white"></span>
+    </div>
+
+    <!-- User Avatar -->
+    <button class="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-blue-700 text-white text-xs font-semibold flex items-center justify-center">
+      DR
     </button>
-    @if (servicesOpen) {
-      <div class="absolute top-10 left-0 bg-white rounded-xl shadow-lg border border-gray-100 py-2 w-48 z-50">
-        @for (s of services; track s.label) {
-          <a [routerLink]="s.route" (click)="servicesOpen = false"
-            class="block px-4 py-2 text-sm text-gray-700 hover:bg-sky-card hover:text-carenota transition-colors">
-            {{ s.label }}
-          </a>
-        }
-      </div>
-    }
+
   </div>
-
-  <!-- Logout -->
-
 </nav>

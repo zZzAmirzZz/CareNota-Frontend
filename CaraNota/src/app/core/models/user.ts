@@ -1,7 +1,8 @@
-// core/models/user.ts
 
-export type UserRole = 'doctor' | 'patient' | 'receptionist';
 
+
+// user.ts
+export type UserRole = 'doctor' | 'patient' | 'receptionist' | 'admin';
 export interface LoginRequest {
   email: string;
   password: string;
@@ -27,35 +28,17 @@ export interface LoginResponse {
   };
 }
 
-// 👇 Add this — covers common .NET response variations
 export interface RawLoginResponse {
-  // Token field variations
-  token?: string;
-  accessToken?: string;
-
-  // Refresh token variations
-  refreshToken?: string;
-  refresh_token?: string;
-
-  // User as a nested object (your current model)
-  user?: {
-    id?: string | number;
-    userId?: string | number;
-    name?: string;
-    fullName?: string;
-    userName?: string;
-    email?: string;
-    role?: UserRole;
-  };
-
-  // User fields flattened at the root level (very common in .NET)
-  userId?: string | number;
-  id?: string | number;
-  name?: string;
-  fullName?: string;
-  userName?: string;
-  email?: string;
-  role?: UserRole;
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  roles: string[];
+  patientId:      number | null;
+  doctorId:       number | null;
+  receptionistId: number | null;
+  adminId:        number | null;   // ← added
 }
 
 export interface RegisterResponse {

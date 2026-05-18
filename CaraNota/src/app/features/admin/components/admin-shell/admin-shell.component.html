@@ -1,0 +1,189 @@
+<div class="min-h-screen flex bg-gray-50">
+
+  <!-- Sidebar -->
+  <aside class="w-56 bg-white border-r border-gray-200 flex flex-col">
+
+    <!-- Logo -->
+    <div class="h-16 flex items-center gap-3 px-5 border-b border-gray-200">
+      <div class="w-12 h-12 rounded-lg bg-blue-800 flex items-center justify-center">
+        <img src="images/CareNota.png"
+             alt="CareNota"
+             class="w-12 h-12 object-contain"
+             style="filter: brightness(1.2)">
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-800 leading-none">CareNota</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Admin Panel</p>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 py-4 px-3 flex flex-col gap-1">
+      <a
+        routerLink="dashboard"
+        routerLinkActive="bg-blue-50 text-blue-700 font-medium"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600
+               hover:bg-gray-100 transition-colors"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Dashboard
+      </a>
+
+      <a
+        routerLink="doctors"
+        routerLinkActive="bg-blue-50 text-blue-700 font-medium"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600
+               hover:bg-gray-100 transition-colors"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        Doctors
+      </a>
+
+      <a
+        routerLink="receptionists"
+        routerLinkActive="bg-blue-50 text-blue-700 font-medium"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600
+               hover:bg-gray-100 transition-colors"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Receptionists
+      </a>
+
+      <a
+        routerLink="create-user"
+        routerLinkActive="bg-blue-50 text-blue-700 font-medium"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600
+               hover:bg-gray-100 transition-colors"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+        Create User
+      </a>
+    </nav>
+
+    <!-- Role legend -->
+    <div class="px-4 py-4 border-t border-gray-100">
+      <p class="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Roles</p>
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-blue-700"></span>
+          <span class="text-xs text-gray-500">Admin</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-teal-600"></span>
+          <span class="text-xs text-gray-500">Doctor</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+          <span class="text-xs text-gray-500">Receptionist</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+          <span class="text-xs text-gray-500">Patient</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- Top bar -->
+    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+      <h1 class="text-sm font-semibold text-gray-700">Admin Control Panel</h1>
+
+      <div class="flex items-center gap-4">
+        <!-- System status -->
+        <span class="flex items-center gap-1.5 text-xs text-green-600">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          System Online
+        </span>
+
+        <!-- Profile menu trigger -->
+        <div class="relative" id="profile-menu-trigger">
+          <button
+            (click)="toggleDropdown()"
+            class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-100
+                   transition-colors group"
+          >
+            <!-- Avatar -->
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <span class="text-xs font-semibold text-blue-700">{{ initials }}</span>
+            </div>
+            <!-- Name + role -->
+            <div class="text-left hidden sm:block">
+              <p class="text-xs font-medium text-gray-800 leading-none truncate max-w-25">
+                {{ profile?.fullName ?? 'Admin' }}
+              </p>
+              <p class="text-[10px] text-gray-400 mt-0.5">Administrator</p>
+            </div>
+            <!-- Chevron -->
+            <svg
+              class="w-3.5 h-3.5 text-gray-400 transition-transform"
+              [class.rotate-180]="dropdownOpen"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          <!-- Dropdown -->
+          @if (dropdownOpen) {
+            <div class="absolute right-0 top-full mt-1.5 w-52 bg-white border border-gray-200
+                        rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+
+              <!-- Profile info header -->
+              <div class="px-4 py-3 border-b border-gray-100">
+                <p class="text-xs font-medium text-gray-800 truncate">{{ profile?.fullName ?? 'Admin' }}</p>
+                <p class="text-[11px] text-gray-400 truncate mt-0.5">{{ profile?.email ?? '' }}</p>
+              </div>
+
+              <!-- Actions -->
+              <button
+                (click)="goToProfile()"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600
+                       hover:bg-gray-50 transition-colors text-left"
+              >
+                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                My Profile
+              </button>
+
+              <div class="border-t border-gray-100 my-1"></div>
+
+              <button
+                (click)="logout()"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600
+                       hover:bg-red-50 transition-colors text-left"
+              >
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Log out
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <!-- Routed content -->
+    <main class="flex-1 overflow-y-auto p-6">
+      <router-outlet />
+    </main>
+  </div>
+</div>

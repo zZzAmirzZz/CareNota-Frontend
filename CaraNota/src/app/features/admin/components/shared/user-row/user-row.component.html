@@ -1,0 +1,36 @@
+<div class="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4">
+
+  <!-- Avatar -->
+  <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
+       [ngClass]="avatarColor">
+    {{ initials }}
+  </div>
+
+  <!-- Info -->
+  <div class="flex-1 min-w-0">
+    <p class="text-sm font-medium text-gray-800 truncate">{{ user.fullName }}</p>
+    <p class="text-xs text-gray-400 truncate">
+      {{ user.email }}
+      @if (user.badge) {
+        <span class="mx-1">•</span>{{ user.badge }}
+      }
+    </p>
+  </div>
+
+  <!-- Phone -->
+  <span class="text-xs text-gray-400 hidden sm:block shrink-0">{{ user.phoneNumber }}</span>
+
+  <!-- ID badge -->
+  <span class="text-[10px] font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded hidden md:block shrink-0">
+    ID {{ user.id }}
+  </span>
+
+  <!-- Delete button -->
+  <button
+    (click)="onDelete()"
+    class="shrink-0 px-3 py-1.5 text-xs text-red-600 bg-red-50 border border-red-200
+           rounded-lg hover:bg-red-100 transition-colors"
+  >
+    Delete
+  </button>
+</div>

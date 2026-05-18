@@ -15,7 +15,17 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/pages/register/register')
         .then(m => m.Register)
-  },
+  }
+  ,
+  
+  {
+  path: 'admin',
+  loadChildren: () =>
+    import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
+  // canActivate: [authGuard], // add your role guard here
+}
+
+,
 
 { path: 'doctor',
 // canActivate: [ roleGuard],
@@ -28,7 +38,7 @@ loadChildren: () => import('./features/doctor/doctor.routes').then(m => m.DOCTOR
 loadChildren: () => import('./features/receptionist/receptionist.routes').then(m => m.RECEPTIONIST_ROUTES) },
 
 { path: 'patient',
-// canActivate: [authGuard, roleGuard],
+// canActivate: [authGuard],
 // data: { roles: ['patient'] },
 loadChildren: () => import('./features/patient-feature/patient.routes').then(m => m.PATIENT_ROUTES) }
 ,
@@ -37,4 +47,7 @@ loadChildren: () => import('./features/patient-feature/patient.routes').then(m =
     redirectTo: 'auth/login',
     pathMatch: 'full'
   }
+
+  ,
+
 ];

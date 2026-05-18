@@ -1,8 +1,4 @@
-// patient.service.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// NEW FILE — did not exist in your code
-// Calls the CareNota API's Patient endpoints (Section 4 of the API doc)
-// ─────────────────────────────────────────────────────────────────────────────
+// src/app/core/services/patient.service.ts
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -12,7 +8,6 @@ import {
   PatientViewModel,
   PatientVisit,
   PatientAppointment,
-  PrescriptionMedication,
   FAKE_PATIENTS,
 } from '../models/patient.model';
 
@@ -23,17 +18,17 @@ export class PatientService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/api/Patient`;
 
-  // ─── GET /api/Patient ─────────────────────────────────────────────────────
+  // ── Read ──────────────────────────────────────────────────────────────
+
+  // GET /api/Patient
   getAll(): Observable<PatientViewModel[]> {
-    if (USE_FAKE_DATA) {
-      return of(FAKE_PATIENTS).pipe(delay(300));
-    }
+    if (USE_FAKE_DATA) return of(FAKE_PATIENTS).pipe(delay(300));
     return this.http
       .get<any[]>(this.base)
       .pipe(map(list => list.map(p => new PatientViewModel(p))));
   }
 
-  // ─── GET /api/Patient/{id} ────────────────────────────────────────────────
+  // GET /api/Patient/{id}
   getById(id: number): Observable<PatientViewModel> {
     if (USE_FAKE_DATA) {
       const p = FAKE_PATIENTS.find(x => x.id === id) ?? FAKE_PATIENTS[0];
@@ -44,7 +39,7 @@ export class PatientService {
       .pipe(map(p => new PatientViewModel(p)));
   }
 
-  // ─── GET /api/Patient/{id}/details ───────────────────────────────────────
+  // GET /api/Patient/{id}/details
   getDetails(id: number): Observable<PatientViewModel> {
     if (USE_FAKE_DATA) return this.getById(id);
     return this.http
@@ -52,7 +47,7 @@ export class PatientService {
       .pipe(map(p => new PatientViewModel(p)));
   }
 
-  // ─── GET /api/Patient/search?name={name} ─────────────────────────────────
+  // GET /api/Patient/search?name={name}
   search(name: string): Observable<PatientViewModel[]> {
     if (USE_FAKE_DATA) {
       const q = name.toLowerCase();
@@ -63,17 +58,29 @@ export class PatientService {
       .pipe(map(list => list.map(p => new PatientViewModel(p))));
   }
 
-  // ─── PUT /api/Patient/{id} ────────────────────────────────────────────────
+  // ── Update ────────────────────────────────────────────────────────────
+
+  // PUT /api/Patient/{id}
+  // Fields accepted by the backend: gender, bloodType, allergies, insuranceInfo
   update(id: number, dto: {
-    gender?: string;
-    bloodType?: string;
-    allergies?: string;
+    gender?:       string;
+    bloodType?:    string;
+    allergies?:    string;
     insuranceInfo?: string;
-  }): Observable<any> {
-    return this.http.put(`${this.base}/${id}`, dto);
+  }): Observable<void> {
+    return this.http.put<void>(`${this.base}/${id}`, dto);
   }
 
-  // ─── GET /api/Appointment/patient/{patientId} ────────────────────────────
+  // ── Delete ────────────────────────────────────────────────────────────
+
+  // DELETE /api/Patient/{id} — admin only, hard delete
+  deletePatient(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  // ── Related data ──────────────────────────────────────────────────────
+
+  // GET /api/Appointment/patient/{patientId}
   getAppointments(patientId: number): Observable<PatientAppointment[]> {
     if (USE_FAKE_DATA) return of([]);
     return this.http.get<PatientAppointment[]>(
@@ -81,7 +88,7 @@ export class PatientService {
     );
   }
 
-  // ─── GET /Api/Visit/Patient/{patientId} ──────────────────────────────────
+  // GET /Api/Visit/Patient/{patientId}
   getVisits(patientId: number): Observable<PatientVisit[]> {
     if (USE_FAKE_DATA) return of([]);
     return this.http.get<PatientVisit[]>(

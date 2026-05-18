@@ -1,0 +1,78 @@
+<div>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-xl font-semibold text-gray-800">Doctors</h2>
+      <p class="text-sm text-gray-500 mt-1">Manage all doctor accounts</p>
+    </div>
+    <a routerLink="../create-user"
+       class="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium
+              rounded-lg hover:bg-teal-700 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Add Doctor
+    </a>
+  </div>
+
+  <!-- Search -->
+  <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 mb-4">
+    <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input
+      type="text"
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearch()"
+      placeholder="Search by name, specialty or email…"
+      class="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400 bg-transparent"
+    />
+  </div>
+
+  <!-- Loading -->
+  @if (loading) {
+    <div class="flex flex-col gap-3">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="bg-white border border-gray-200 rounded-xl px-4 py-3 animate-pulse flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-gray-200"></div>
+          <div class="flex-1">
+            <div class="h-3 bg-gray-200 rounded w-40 mb-2"></div>
+            <div class="h-2.5 bg-gray-200 rounded w-56"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error) {
+    <div class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+      Failed to load doctors.
+      <button (click)="load()" class="underline ml-1">Retry</button>
+    </div>
+  }
+
+  <!-- List -->
+  @if (!loading && !error) {
+    @if (filtered.length === 0) {
+      <p class="text-sm text-gray-400 text-center py-12">No doctors found.</p>
+    } @else {
+      <div class="flex flex-col gap-2">
+        @for (doc of filtered; track doc.id) {
+          <app-user-row
+            [user]="toRowData(doc)"
+            (deleteRequested)="requestDelete($event)"
+          />
+        }
+      </div>
+    }
+  }
+</div>
+
+<!-- Delete modal -->
+<app-confirm-delete-modal
+  [visible]="showModal"
+  [name]="pendingDelete?.fullName ?? ''"
+  (confirmed)="confirmDelete()"
+  (cancelled)="closeModal()"
+/>

@@ -4,12 +4,24 @@
 
 
 @theme {
-  --color-navy:       hsla(234, 45%, 26%, 1);
-  --color-navy-dark:  hsla(234, 45%, 18%, 1);
-  --color-navy-light: hsla(234, 45%, 34%, 1);
-  --color-sky-card:   hsla(214, 93%, 88%, 1);
-  --color-blue-brand: hsla(214, 100%, 70%, 1);
+  --color-navy: #005AC7;
+  --color-navy-dark: #003a82;
+  --color-navy-light: #4D8DE0; /* A middle-ground blue */
+  --color-sky-card: #E8F2FF;  /* Much softer for the "Schedule" cards */
+  --color-blue-brand: #005AC7;
+    --background-image-start-visit: url('/images/bgStartVisit.png');
+
 }
+
+/* --color-navy:       hsla(234, 45%, 26%, 1);
+
+  --color-navy-dark:  hsla(234, 45%, 18%, 1);
+
+  --color-navy-light: hsla(234, 45%, 34%, 1);
+
+  --color-sky-card:   hsla(214, 93%, 88%, 1);
+
+  --color-blue-brand: hsla(214, 100%, 70%, 1);  */
 
 /* ── Reset ── */
 html, body {

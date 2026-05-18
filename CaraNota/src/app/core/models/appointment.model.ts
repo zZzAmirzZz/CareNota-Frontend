@@ -25,11 +25,14 @@ export interface CreateAppointmentDto {
   receptionistID?: number;
 }
 
+// Add to appointment.model.ts
 export interface UpdateAppointmentDto {
   startTime?: string;
   endTime?: string;
-  status?: AppointmentStatus;
   appointmentType?: string;
+  patientID?: number;
+  doctorID?: number;
+  receptionistID?: number;
 }
 
 export interface TimeSlot {

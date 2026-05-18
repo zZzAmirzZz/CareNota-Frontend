@@ -1,39 +1,43 @@
-<div class="min-h-screen bg-gray-100 font-sans">
+<div class="min-h-screen bg-white font-sans">
   <app-doctor-navbar />
 
   <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
 
     <!-- Hero Banner -->
-    <div class="relative bg-navy rounded-3xl overflow-hidden h-72 flex items-end p-8">
-      <!-- Big background text -->
-      <span class="absolute inset-0 flex items-center justify-center
-        text-[9rem] font-extrabold text-white/10 tracking-tight select-none pointer-events-none">
-        Healthcare
-      </span>
+    <div class="relative bg-navy rounded-3xl overflow-hidden h-56 flex items-center p-8"
+         style="background: linear-gradient(135deg, #1a3fc4 0%, #1e4bd8 60%, #2255e8 100%);">
+
+      <!-- BG illustration — blend mode removes the checkered transparency -->
+      <img
+        src="/images/bgStartVisit.png"
+        alt=""
+        class="absolute right-0 top-0 h-full w-2/3 object-cover object-left pointer-events-none select-none"
+        style="mix-blend-mode: screen; opacity: 0.35;"
+      />
 
       <!-- Left text -->
-      <div class="relative z-10">
-        <p class="text-white font-bold text-lg uppercase leading-snug tracking-wide">
-          Spend more time<br>with patients, not<br>paperwork.
+      <div class="relative z-10 flex flex-col gap-1 max-w-xs">
+        <p class="text-white font-bold text-2xl leading-snug">
+          Spend more time<br>with patients, not paperwork.
+        </p>
+        <p class="text-white/70 text-sm mt-1">
+          AI-powered documentation that listens, understands, and writes for you.
         </p>
       </div>
 
-      <!-- CTA Button -->
-      <div class="relative z-10 ml-auto">
+     <div class="relative z-10 ml-auto self-end">
         <a routerLink="/doctor/today-visits"
-   class="flex items-center gap-3 bg-white/10 border border-white/30 backdrop-blur-sm
-          text-white font-semibold px-6 py-3 rounded-full hover:bg-white hover:text-navy
-          transition-all duration-300 group">
-  Start Vist
-  <span class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center
-               group-hover:bg-navy group-hover:text-white transition-all">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-    </svg>
-  </span>
-</a>
-
-
+           class="flex items-center gap-3 bg-white/10 border border-white/30 backdrop-blur-sm
+                  text-white font-semibold px-6 py-3 rounded-full hover:bg-white hover:text-navy
+                  transition-all duration-300 group">
+          Start Visit
+          <span class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center
+                       group-hover:bg-navy group-hover:text-white transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </span>
+        </a>
       </div>
     </div>
 

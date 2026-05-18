@@ -1,4 +1,5 @@
 // src/app/core/services/doctor.service.ts
+
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
@@ -8,21 +9,14 @@ import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class DoctorService {
-  private http = inject(HttpClient);
-  private auth = inject(AuthService);
+  private http    = inject(HttpClient);
+  private auth    = inject(AuthService);
   private baseUrl = `${environment.apiUrl}/api/Doctor`;
 
-  // Call this once after login — saves doctorID to localStorage via AuthService
-  resolveDoctorId(): Observable<Doctor> {
-    const userId = this.auth.getUserId();
+  // ── Read ──────────────────────────────────────────────────────────────
 
-    if (!userId) throw new Error('No userID found — user must be logged in');
-
-    // Backend note: GET /api/Doctor/{id} — the id here is the userID
-    // The backend resolves the doctor profile linked to that user
-    return this.http.get<Doctor>(`${this.baseUrl}/${userId}`).pipe(
-      tap(doctor => this.auth.saveDoctorId(doctor.id))
-    );
+  getAllDoctors(): Observable<Doctor[]> {
+    return this.http.get<Doctor[]>(this.baseUrl);
   }
 
   getDoctorById(id: number): Observable<Doctor> {
@@ -33,8 +27,29 @@ export class DoctorService {
     return this.http.get<Doctor[]>(`${this.baseUrl}/specialty/${specialty}`);
   }
 
-  // Add to doctor.service.ts
-getAllDoctors(): Observable<Doctor[]> {
-  return this.http.get<Doctor[]>(this.baseUrl);
-}
+  // ── Update ────────────────────────────────────────────────────────────
+
+  // PUT /api/Doctor/{id} — only the specialty field is accepted by the backend
+  updateSpecialty(id: number, specialty: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}`, { specialty });
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────
+
+  // DELETE /api/Doctor/{id} — admin only, hard delete
+  deleteDoctor(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  // ── ID resolution ─────────────────────────────────────────────────────
+
+  // Call once after login to store the integer doctorId in localStorage.
+  // The backend accepts the userId (string from JWT) and returns the doctor profile.
+  resolveDoctorId(): Observable<Doctor> {
+    const userId = this.auth.getUserId();
+    if (!userId) throw new Error('No userId found — user must be logged in');
+    return this.http.get<Doctor>(`${this.baseUrl}/${userId}`).pipe(
+      tap(doctor => this.auth.saveDoctorId(doctor.id))
+    );
+  }
 }

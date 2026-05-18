@@ -1,0 +1,154 @@
+<div class="max-w-xl">
+  <!-- Header -->
+  <div class="mb-6">
+    <h2 class="text-xl font-semibold text-gray-800">Create New User</h2>
+    <p class="text-sm text-gray-500 mt-1">Register a doctor or receptionist account</p>
+  </div>
+
+  <!-- Role selector -->
+  <div class="flex gap-3 mb-6">
+    <button
+      type="button"
+      (click)="setRole('doctor')"
+      [class]="selectedRole === 'doctor'
+        ? 'flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border-2 border-teal-500 bg-teal-50 text-teal-700 transition-all'
+        : 'flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-all'"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span class="text-sm font-medium">Doctor</span>
+    </button>
+
+    <button
+      type="button"
+      (click)="setRole('receptionist')"
+      [class]="selectedRole === 'receptionist'
+        ? 'flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border-2 border-orange-400 bg-orange-50 text-orange-600 transition-all'
+        : 'flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-all'"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span class="text-sm font-medium">Receptionist</span>
+    </button>
+  </div>
+
+  <!-- Success / Error banners -->
+  @if (successMessage) {
+    <div class="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+      {{ successMessage }}
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <!-- Form -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()"
+        class="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+
+    <!-- Full name -->
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Full name <span class="text-red-500">*</span></label>
+      <input formControlName="fullName" type="text" placeholder="e.g. Dr. Ahmed Ali"
+             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
+                    focus:border-blue-400 bg-gray-50 text-gray-800 placeholder-gray-400" />
+      @if (f['fullName'].invalid && f['fullName'].touched) {
+        <p class="text-xs text-red-500 mt-1">Full name is required (min 3 chars).</p>
+      }
+    </div>
+
+    <!-- Email -->
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Email address <span class="text-red-500">*</span></label>
+      <input formControlName="email" type="email" placeholder="name@carenota.com"
+             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
+                    focus:border-blue-400 bg-gray-50 text-gray-800 placeholder-gray-400" />
+      @if (f['email'].invalid && f['email'].touched) {
+        <p class="text-xs text-red-500 mt-1">Valid email is required.</p>
+      }
+    </div>
+
+    <!-- Phone + Gender -->
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Phone number <span class="text-red-500">*</span></label>
+        <input formControlName="phoneNumber" type="tel" placeholder="+20 100 000 0000"
+               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
+                      focus:border-blue-400 bg-gray-50 text-gray-800 placeholder-gray-400" />
+        @if (f['phoneNumber'].invalid && f['phoneNumber'].touched) {
+          <p class="text-xs text-red-500 mt-1">Phone is required.</p>
+        }
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Gender</label>
+        <select formControlName="gender"
+                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
+                       focus:border-blue-400 bg-gray-50 text-gray-800">
+          <option value="">Select gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Password <span class="text-red-500">*</span></label>
+      <input formControlName="password" type="password" placeholder="Min. 8 characters"
+             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
+                    focus:border-blue-400 bg-gray-50 text-gray-800 placeholder-gray-400" />
+      @if (f['password'].invalid && f['password'].touched) {
+        <p class="text-xs text-red-500 mt-1">Password must be at least 8 characters.</p>
+      }
+    </div>
+
+    <!-- Specialty (doctor only) -->
+    @if (selectedRole === 'doctor') {
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Specialty <span class="text-red-500">*</span></label>
+        <select formControlName="specialty"
+                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
+                       focus:border-blue-400 bg-gray-50 text-gray-800">
+          <option value="">Select specialty</option>
+          <option>Cardiology</option>
+          <option>Neurology</option>
+          <option>Dermatology</option>
+          <option>Pediatrics</option>
+          <option>Orthopedics</option>
+          <option>Oncology</option>
+          <option>General Practice</option>
+          <option>Radiology</option>
+        </select>
+        @if (f['specialty'].invalid && f['specialty'].touched) {
+          <p class="text-xs text-red-500 mt-1">Specialty is required for doctors.</p>
+        }
+      </div>
+    }
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+      <a routerLink="../dashboard"
+         class="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+        Cancel
+      </a>
+      <button
+        type="submit"
+        [disabled]="submitting"
+        [class]="selectedRole === 'doctor'
+          ? 'px-5 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50'
+          : 'px-5 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50'"
+      >
+        @if (submitting) { Creating… }
+        @else {
+          Create {{ selectedRole === 'doctor' ? 'Doctor' : 'Receptionist' }} Account
+        }
+      </button>
+    </div>
+
+  </form>
+</div>

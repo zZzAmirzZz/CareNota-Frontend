@@ -13,30 +13,39 @@ import { AuthService } from '../../../../core/services/auth.service';
   styleUrls: ['./login.css'],
 })
 export class Login {
-  private fb          = inject(FormBuilder);
+  private fb = inject(FormBuilder);
   private authService = inject(AuthService);
 
-  isLoading    = false;
+  isLoading = false;
   errorMessage = '';
   showPassword = false;
 
   loginForm: FormGroup = this.fb.group({
-    email:    ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
-  get email()    { return this.loginForm.get('email')!; }
-  get password() { return this.loginForm.get('password')!; }
+  get email() {
+    return this.loginForm.get('email')!;
+  }
+  get password() {
+    return this.loginForm.get('password')!;
+  }
 
   onSubmit(): void {
-    if (this.loginForm.invalid) { this.loginForm.markAllAsTouched(); return; }
-    this.isLoading    = true;
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+    this.isLoading = true;
     this.errorMessage = '';
 
     this.authService.login(this.loginForm.value).subscribe({
-      next: (res) => {
+      next: () => {
         this.isLoading = false;
-        const role = res?.user?.role;
+        const role = this.authService.getCurrentRole();
+        console.log('Role after login:', role); // 👈 add this
+        console.log('isLoggedIn:', this.authService.isLoggedIn()); // 👈 and this
         if (role) {
           this.authService.redirectByRole(role);
         } else {
@@ -44,7 +53,7 @@ export class Login {
         }
       },
       error: (err) => {
-        this.isLoading    = false;
+        this.isLoading = false;
         this.errorMessage = err?.error?.message ?? err?.error ?? 'Invalid email or password.';
       },
     });

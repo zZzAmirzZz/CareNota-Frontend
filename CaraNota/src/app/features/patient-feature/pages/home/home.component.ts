@@ -57,11 +57,11 @@ export class HomeComponent implements OnInit {
   // ── Computed ──────────────────────────────────────────────────────────────
   greeting = computed(() => `Welcome back , ${this.patientName()}!`);
 
-  ngOnInit(): void {
-    const patientId = this.authService.getPatientId();
-    if (!patientId) { this.error.set('Could not identify patient.'); this.isLoading.set(false); return; }
-    this.loadData(patientId);
-  }
+ngOnInit(): void {
+  const patientId = this.authService.getPatientId();
+  if (!patientId) { this.error.set('Could not identify patient.'); this.isLoading.set(false); return; }
+  this.loadData(patientId);
+}
 
   private loadData(patientId: number): void {
     const visits$       = this.patientService.getVisits(patientId).pipe(catchError(() => of([])));
