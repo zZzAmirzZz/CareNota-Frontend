@@ -1,15 +1,14 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
+import { AdminManagedRole } from '../../../models/admin.model'; // ← Add this import
 export interface UserRowData {
-  id: number;
+  id: number;            // ← back to number
   fullName: string;
   email: string;
-  phoneNumber: string;
-  badge?: string;   // e.g. specialty for doctors
-  role: 'doctor' | 'receptionist';
+  phoneNumber?: string;  // ← keep optional, Doctor doesn't guarantee it
+  badge?: string;
+  role: AdminManagedRole;
 }
-
 @Component({
   selector: 'app-user-row',
   standalone: true,

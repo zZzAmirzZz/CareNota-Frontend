@@ -1,18 +1,12 @@
 // src/app/features/receptionist/pages/dashboard/receptionist-dashboard.ts
+
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
-import { delay } from 'rxjs/operators';
 import { Appointment } from '../../../../../core/models/appointment.model';
 import { AppointmentService } from '../../../../../core/services/appointment.service';
 import { ReceptionistNavbar } from '../../../receptionist-layout/receptionist-navbar/receptionist-navbar';
-import {
-  USE_FAKE_DATA,
-  fakeGetByDateRange,
-  fakeCancel,
-} from '../../../fake-data';
 
 @Component({
   selector: 'app-receptionist-dashboard',
@@ -49,7 +43,6 @@ export class ReceptionistDashboard implements OnInit, OnDestroy {
     })
   );
 
-  // ✅ FIX: was missing — template uses {{ monthLabel() }}
   monthLabel = computed(() =>
     this.calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   );
@@ -80,8 +73,6 @@ export class ReceptionistDashboard implements OnInit, OnDestroy {
     for (let d = 1; d <= last; d++) days.push(new Date(y, m, d));
     this.calendarDays.set(days);
   }
-  
- currentMonthLabel = signal(new Date().toLocaleString('default', { month: 'long', year: 'numeric' }));
 
   prevMonth(): void {
     this.calendarMonth = new Date(
@@ -129,15 +120,6 @@ export class ReceptionistDashboard implements OnInit, OnDestroy {
     const from = new Date(date); from.setHours(0, 0, 0, 0);
     const to   = new Date(date); to.setHours(23, 59, 59, 999);
 
-    if (USE_FAKE_DATA) {
-      of(fakeGetByDateRange(from, to)).pipe(delay(400)).subscribe(appts => {
-        this.setAppointments(appts);
-        this.isLoading.set(false);
-      });
-      return;
-    }
-
-    // Original appointment service — untouched
     this.svc.getByDateRange(from, to).subscribe({
       next:  appts => { this.setAppointments(appts); this.isLoading.set(false); },
       error: ()    => { this.error.set('Failed to load appointments.'); this.isLoading.set(false); },
@@ -171,17 +153,9 @@ export class ReceptionistDashboard implements OnInit, OnDestroy {
 
   cancelAppointment(id: number): void {
     if (!confirm('Cancel this appointment?')) return;
-
-    if (USE_FAKE_DATA) {
-      fakeCancel(id);
-      this.loadForDate(this.selectedDate());   // re-read from fake store
-      return;
-    }
-
-    // Original appointment service — untouched
     this.svc.cancelAppointment(id).subscribe({
       next:  () => this.loadForDate(this.selectedDate()),
-      error: () => alert('Failed to cancel appointment.'),
+      error: () => this.error.set('Failed to cancel appointment.'),
     });
   }
 
@@ -202,8 +176,8 @@ export class ReceptionistDashboard implements OnInit, OnDestroy {
   statusClass(status: string): string {
     const map: Record<string, string> = {
       Scheduled: 'bg-orange-50 text-orange-500 border border-orange-200',
-      Completed:  'bg-green-50 text-green-600 border border-green-200',
-      Cancelled:  'bg-red-50 text-red-500 border border-red-200',
+      Completed: 'bg-green-50 text-green-600 border border-green-200',
+      Cancelled: 'bg-red-50 text-red-500 border border-red-200',
     };
     return map[status] ?? 'bg-gray-100 text-gray-500';
   }

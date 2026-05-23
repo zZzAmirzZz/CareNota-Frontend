@@ -1,4 +1,4 @@
-<!-- src/app/features/doctor/today-visits/today-visits.component.html -->
+<!-- src/app/features/doctor/pages/today-visit/today-visit.html -->
 <div class="min-h-screen bg-gray-100 font-sans">
   <app-doctor-navbar />
 
@@ -22,17 +22,28 @@
       </div>
     }
 
-    <!-- Error state -->
+    <!-- Error -->
     @if (error()) {
-      <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-5 text-sm">
-        {{ error() }}
+      <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-5 text-sm flex items-center justify-between gap-4">
+        <span>{{ error() }}</span>
+        <button (click)="loadAppointments()"
+                class="text-xs font-semibold underline hover:no-underline shrink-0">
+          Retry
+        </button>
       </div>
     }
 
     <!-- Empty state -->
     @if (!isLoading() && !error() && appointments().length === 0) {
       <div class="bg-white rounded-2xl p-10 text-center">
-        <p class="text-gray-500 text-sm">No scheduled appointments for today.</p>
+        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <p class="text-gray-500 text-sm font-medium">No scheduled appointments for today.</p>
+        <p class="text-gray-400 text-xs mt-1">Enjoy your day!</p>
       </div>
     }
 
@@ -45,8 +56,9 @@
 
             <!-- Left: time + patient info -->
             <div class="flex items-center gap-4">
+
               <!-- Time block -->
-              <div class="text-center min-w-15">
+              <div class="text-center min-w-[3.5rem]">
                 <p class="text-base font-bold text-navy">{{ formatTime(appt.startTime) }}</p>
                 <p class="text-xs text-gray-400">{{ formatTime(appt.endTime) }}</p>
               </div>
@@ -54,14 +66,20 @@
               <!-- Divider -->
               <div class="w-px h-10 bg-gray-200"></div>
 
-              <!-- Patient info -->
-              <div>
-                <p class="font-semibold text-gray-900">{{ appt.patientName }}</p>
-                <p class="text-xs text-gray-500 mt-0.5">{{ appt.appointmentType }}</p>
+              <!-- Patient avatar + info -->
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600
+                            text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  {{ appt.patientName.charAt(0) }}
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-900">{{ appt.patientName }}</p>
+                  <p class="text-xs text-gray-500 mt-0.5">{{ appt.appointmentType }}</p>
+                </div>
               </div>
             </div>
 
-            <!-- Right: status badge + Start Visit button -->
+            <!-- Right: status + Start Visit -->
             <div class="flex items-center gap-3 shrink-0">
               <span class="text-xs font-medium bg-green-50 text-green-700
                            px-3 py-1 rounded-full border border-green-200">

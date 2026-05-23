@@ -11,7 +11,7 @@ import {
   FAKE_PATIENTS,
 } from '../models/patient.model';
 
-const USE_FAKE_DATA = true; // ← flip to false when backend is ready
+const USE_FAKE_DATA = false; // ← flip to false when backend is ready
 
 @Injectable({ providedIn: 'root' })
 export class PatientService {

@@ -1,112 +1,93 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+// src/app/features/doctor/pages/today-visit/today-visit.ts
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { DoctorNavbar } from '../../../../layout/doctor-layout/doctor-navbar/doctor-navbar';
 import { AppointmentService } from '../../../../core/services/appointment.service';
 import { VisitService } from '../../../../core/services/visit.service';
-import { AuthService } from '../../../../core/services/auth.service';
-import { Appointment } from '../../../../core/models/appointment.model';
-import { DoctorNavbar } from "../../../../layout/doctor-layout/doctor-navbar/doctor-navbar";
-
+import { Appointment, Visit } from '../../../../core/models/appointment.model';
 
 @Component({
   selector: 'app-today-visit',
-  imports: [DoctorNavbar],
+  standalone: true,
+  imports: [CommonModule, RouterModule, DoctorNavbar],
   templateUrl: './today-visit.html',
   styleUrl: './today-visit.css',
 })
-export class TodayVisit  implements OnInit {
-  private appointmentService = inject(AppointmentService);
-  private visitService = inject(VisitService);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+export class TodayVisit implements OnInit {
+  private appointmentService  = inject(AppointmentService);
+  private visitService        = inject(VisitService);
+  private router              = inject(Router);
 
-  appointments = signal<Appointment[]>([]);
-  isLoading = signal(true);
-  error = signal<string | null>(null);
-
-  // Track which appointment card is currently loading (to show spinner per card)
+  appointments         = signal<Appointment[]>([]);
+  isLoading            = signal(true);
+  error                = signal<string | null>(null);
   loadingAppointmentId = signal<number | null>(null);
 
-  ngOnInit(): void {
-    this.loadTodayAppointments();
-  }
-
-  private loadTodayAppointments(): void {
-    const doctorId = this.authService.getDoctorId();
-    if (!doctorId) {
-      this.error.set('Doctor profile not found. Please log out and log in again.');
-      this.isLoading.set(false);
-      return;
-    }
-
-    // Strategy: fetch all doctor appointments, filter by today + Scheduled status
-    // This avoids needing date-range and ensures we only show THIS doctor's list
-    this.appointmentService.getByDoctor(doctorId).subscribe({
-      next: (all) => {
-        const todayScheduled = all.filter(a => {
-          const isToday = this.isToday(a.startTime);
-          const isScheduled = a.status === 'Scheduled';
-          return isToday && isScheduled;
-        });
-
-        // Sort by start time ascending
-        todayScheduled.sort(
-          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        );
-
-        this.appointments.set(todayScheduled);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.error.set('Failed to load appointments. Please try again.');
-        this.isLoading.set(false);
-      },
-    });
-  }
-
-  // Called when doctor clicks an appointment card
-startVisit(appointment: Appointment): void {
-  this.loadingAppointmentId.set(appointment.appointmentID);
-
-  this.visitService.getOrCreateVisit(appointment.appointmentID).subscribe({
-    next: (visit) => {
-      console.log('Visit response:', visit); // ← ADD THIS
-      this.loadingAppointmentId.set(null);
-      this.router.navigate(['/doctor/visit-session', visit.visitId], {
-        state: { appointment },
-      });
-    },
-    error: (err) => {
-      console.log('Visit error:', err); // ← ADD THIS TOO
-      this.loadingAppointmentId.set(null);
-      this.error.set('Could not start visit. Please try again.');
-    },
+  todayLabel = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
-}
 
-  // ── Helpers ────────────────────────────────────────────────────────────
-
-  private isToday(utcString: string): boolean {
-    const date = new Date(utcString);
-    const today = new Date();
-    return (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
-    );
+  ngOnInit(): void {
+    this.loadAppointments();
   }
 
-  formatTime(utcString: string): string {
-    return this.appointmentService.toLocalTime(utcString);
-  }
+  loadAppointments(): void {
+    this.isLoading.set(true);
+    this.error.set(null);
 
-  formatDate(utcString: string): string {
-    return this.appointmentService.toLocalDate(utcString);
-  }
+    const { from, to } = this.appointmentService.getTodayRange();
 
-  get todayLabel(): string {
-    return new Date().toLocaleDateString([], {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    this.appointmentService.getByDateRange(from, to).subscribe({
+      next: (list: Appointment[]) => {
+        this.appointments.set(
+          list
+            .filter((a: Appointment) => a.status === 'Scheduled')
+            .sort((a: Appointment, b: Appointment) =>
+              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+            )
+        );
+        this.isLoading.set(false);
+      },
+      error: (err: any) => {
+        this.error.set(err?.message ?? 'Failed to load today\'s appointments.');
+        this.isLoading.set(false);
+      },
     });
+  }
+
+  startVisit(appt: Appointment): void {
+    this.loadingAppointmentId.set(appt.appointmentID);
+    this.error.set(null);
+
+    this.visitService.createVisit({
+      visitDate:     new Date().toISOString(),
+      appointmentID: appt.appointmentID,
+    }).subscribe({
+      next: (visit: Visit) => {
+        this.loadingAppointmentId.set(null);
+
+        const patientState = {
+          name:      appt.patientName,
+          id:        appt.patientID,
+          age:       0,
+          gender:    'N/A',
+          visitType: appt.appointmentType,
+        };
+
+        this.router.navigate(
+          [`/doctor/recording/${visit.visitId}`],
+          { state: { patient: patientState } }
+        );
+      },
+      error: (err: any) => {
+        this.loadingAppointmentId.set(null);
+        this.error.set(err?.error?.message ?? 'Could not start visit. Please try again.');
+      },
+    });
+  }
+
+  formatTime(utc: string): string {
+    return new Date(utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 }

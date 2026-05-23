@@ -46,25 +46,25 @@ export class DoctorsComponent implements OnInit {
   }
 
   onSearch(): void {
-    const q = this.searchQuery.toLowerCase();
-    this.filtered = this.doctors.filter(
-      (d) =>
-        d.fullName.toLowerCase().includes(q) ||
-        (d.specialty ?? '').toLowerCase().includes(q) ||
-        d.email.toLowerCase().includes(q)
-    );
-  }
+  const q = this.searchQuery.toLowerCase();
+  this.filtered = this.doctors.filter(
+    (d) =>
+      d.fullName.toLowerCase().includes(q) ||
+      d.specialty.toLowerCase().includes(q) ||
+      d.email.toLowerCase().includes(q)
+  );
+}
 
-  toRowData(d: DoctorProfile): UserRowData {
-    return {
-      id: d.id,
-      fullName: d.fullName,
-      email: d.email,
-      phoneNumber: d.phoneNumber,
-      badge: d.specialty,
-      role: 'doctor',
-    };
-  }
+toRowData(d: DoctorProfile): UserRowData {
+  return {
+    id: d.id,
+    fullName: d.fullName,
+    email: d.email,
+    phoneNumber: d.phoneNumber,
+    badge: d.specialty,   // ← was d.specialty
+    role: 'doctor',
+  };
+}
 
   requestDelete(user: UserRowData): void {
     this.pendingDelete = this.doctors.find((d) => d.id === user.id) ?? null;

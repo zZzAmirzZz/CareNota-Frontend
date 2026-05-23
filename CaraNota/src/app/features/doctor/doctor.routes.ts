@@ -1,37 +1,49 @@
+// src/app/features/doctor/doctor.routes.ts
+
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../core/guards/role.guard';
 
 export const DOCTOR_ROUTES: Routes = [
+  // ── Dashboard ─────────────────────────────────────────────────────────────
   {
-    path: '', // This matches the base '/doctor' path
+    path: '',
     loadComponent: () =>
       import('./pages/doctor-dashboard/doctor-dashboard').then(m => m.DoctorDashboard),
   },
+
+  // ── Profile ───────────────────────────────────────────────────────────────
+  // Accessed by clicking the avatar in the navbar → /doctor/profile
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('./pages/doctor-profile/doctor-profile').then(m => m.DoctorProfile),
+  },
+
+  // ── Today's Visits ────────────────────────────────────────────────────────
+  // Lists today's scheduled appointments with "Start Visit" button
   {
     path: 'today-visits',
     loadComponent: () =>
       import('./pages/today-visit/today-visit').then(m => m.TodayVisit),
   },
-  {
-    path: 'visit-session/:visitId',
-    loadComponent: () =>
-      import('./pages/today-visit/visit-session/visit-session').then(m => m.VisitSession),
-  },
+
+  // ── Recording ─────────────────────────────────────────────────────────────
+  // Navigated to from today-visit after POST /Api/Visit returns real visitId.
+  // ⚠️ :visitId here is the VISIT id — NOT the appointment id.
   {
     path: 'recording/:visitId',
     loadComponent: () =>
       import('./pages/recording/recording').then(m => m.Recording),
   },
-  // {
-  //   path: 'visit-note/:visitId',
-  //   loadComponent: () =>
-  //     import('./visit-note/visit-note.component').then(m => m.VisitNoteComponent),
-  // },
+
+  // ── Scheduling ────────────────────────────────────────────────────────────
   {
     path: 'scheduling',
     loadComponent: () =>
       import('./pages/scheduling/scheduling').then(m => m.Scheduling),
   },
+
+  // ── Patients ──────────────────────────────────────────────────────────────
   {
     path: 'patients',
     loadComponent: () =>

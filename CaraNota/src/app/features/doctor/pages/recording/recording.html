@@ -1,1 +1,361 @@
-<p>recording works!</p>
+<!-- src/app/features/doctor/pages/recording/recording.html -->
+<div class="min-h-screen bg-gray-50 font-sans">
+
+  <app-doctor-navbar />
+
+  <!-- Upload overlay -->
+  @if (isUploading()) {
+    <div class="fixed inset-0 bg-white/80 backdrop-blur-sm z-50
+                flex flex-col items-center justify-center gap-4">
+      <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent
+                  rounded-full animate-spin"></div>
+      <p class="text-gray-700 font-semibold">Uploading recording…</p>
+      <p class="text-gray-400 text-sm">Preparing AI analysis</p>
+    </div>
+  }
+
+  <!-- Upload error toast -->
+  @if (uploadError()) {
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50
+                bg-red-50 border border-red-200 text-red-700 text-sm
+                px-5 py-3 rounded-xl shadow-sm">
+      {{ uploadError() }}
+    </div>
+  }
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <div class="flex gap-6 items-start">
+
+      <!-- ── LEFT PANEL ──────────────────────────────────────────────────── -->
+      <div class="flex-1 space-y-4">
+
+        <!-- Status bar -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-4
+                    flex items-center justify-between">
+          <div class="flex items-center gap-3">
+
+            <!-- Pulsing indicator -->
+            <span class="relative flex h-3 w-3 shrink-0">
+              @if (recordingState() === 'recording') {
+                <span class="animate-ping absolute inline-flex h-full w-full
+                             rounded-full bg-green-400 opacity-75"></span>
+              }
+              <span class="relative inline-flex rounded-full h-3 w-3"
+                    [class]="recordingState() === 'recording' ? 'bg-green-500' :
+                             recordingState() === 'paused'    ? 'bg-amber-400' :
+                                                                'bg-gray-400'">
+              </span>
+            </span>
+
+            <div>
+              <p class="text-sm font-semibold text-gray-800">
+                @if (recordingState() === 'recording') { Recording in progress }
+                @if (recordingState() === 'paused')    { Recording paused }
+                @if (recordingState() === 'stopped')   { Recording ended }
+              </p>
+              <p class="text-xs text-gray-400 mt-0.5">
+                @if (recordingState() === 'recording') {
+                  Speak naturally. Your consultation is being recorded securely.
+                }
+                @if (recordingState() === 'paused') {
+                  Recording paused. Click Resume to continue.
+                }
+                @if (recordingState() === 'stopped') {
+                  Processing your recording…
+                }
+              </p>
+            </div>
+          </div>
+
+          <!-- HIPAA badge -->
+          <div class="flex items-center gap-1.5 text-blue-600 bg-blue-50
+                      border border-blue-100 px-3 py-1.5 rounded-full
+                      text-xs font-semibold shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0
+                   01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622
+                   5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            HIPAA Compliant
+          </div>
+        </div>
+
+        <!-- Waveform card -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-10">
+
+          <!-- Waveform visualizer -->
+          <div class="flex items-center justify-center gap-0.5 h-20 mb-8">
+
+            <!-- Left 18 bars -->
+            @for (i of waveformBars.slice(0, 18); track i) {
+              <div class="w-1.5 rounded-full transition-all duration-75"
+                   [style.height.px]="barHeights()[i]"
+                   [class]="recordingState() === 'recording'
+                     ? (i % 3 === 0 ? 'bg-blue-600' : i % 3 === 1 ? 'bg-blue-400' : 'bg-blue-300')
+                     : 'bg-gray-200'">
+              </div>
+            }
+
+            <!-- Centre mic button -->
+            <div class="mx-5 shrink-0">
+              <div class="w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-300"
+                   [class]="recordingState() === 'recording'
+                     ? 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-200/60'
+                     : recordingState() === 'paused'
+                     ? 'bg-gradient-to-br from-amber-400 to-amber-500 shadow-amber-200/60'
+                     : 'bg-gray-300'">
+                <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 1a4 4 0 014 4v6a4 4 0 01-8 0V5a4 4 0 014-4zm0 2a2 2 0
+                    00-2 2v6a2 2 0 004 0V5a2 2 0 00-2-2zm-1 14.93V20H9v2h6v-2h-2v-2.07A8.001
+                    8.001 0 004 11H2a10 10 0 0020 0h-2a8.001 8.001 0 00-7 2.93z"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Right 18 bars -->
+            @for (i of waveformBars.slice(22); track i) {
+              <div class="w-1.5 rounded-full transition-all duration-75"
+                   [style.height.px]="barHeights()[i + 22]"
+                   [class]="recordingState() === 'recording'
+                     ? (i % 3 === 0 ? 'bg-blue-600' : i % 3 === 1 ? 'bg-blue-400' : 'bg-blue-300')
+                     : 'bg-gray-200'">
+              </div>
+            }
+
+          </div>
+
+          <!-- Timer -->
+          <div class="text-center mb-8">
+            <p class="text-4xl font-bold text-gray-900 tracking-widest tabular-nums font-mono">
+              {{ formattedTime }}
+            </p>
+            <p class="text-sm text-gray-400 mt-1">Recording Time</p>
+          </div>
+
+          <!-- Controls -->
+          @if (recordingState() !== 'stopped') {
+            <div class="flex items-center justify-center gap-4">
+
+              <!-- Pause / Resume -->
+              <button (click)="togglePause()"
+                      class="flex items-center gap-2.5 px-8 py-3 rounded-xl
+                             border-2 border-gray-200 text-gray-700 font-semibold text-sm
+                             hover:border-gray-300 hover:bg-gray-50 transition-all min-w-48 justify-center">
+                @if (recordingState() === 'recording') {
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+                  Pause Recording
+                } @else {
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  Resume Recording
+                }
+              </button>
+
+              <!-- End Recording -->
+              <button (click)="endRecording()"
+                      class="flex items-center gap-2.5 px-8 py-3 rounded-xl
+                             border-2 border-red-200 text-red-600 font-semibold text-sm
+                             hover:bg-red-50 hover:border-red-300 transition-all min-w-48 justify-center">
+                <span class="w-3 h-3 rounded-sm bg-red-500 shrink-0"></span>
+                End Recording
+              </button>
+
+            </div>
+          }
+        </div>
+
+        <!-- Tips card -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5">
+          <div class="flex items-center gap-2 mb-4">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13
+                   21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+            <p class="text-sm font-semibold text-gray-700">Tips for better recording</p>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+
+            <div class="flex items-start gap-2.5 p-3 bg-gray-50 rounded-xl">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0
+                       01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-500 leading-relaxed">Speak clearly and at a normal pace</p>
+            </div>
+
+            <div class="flex items-start gap-2.5 p-3 bg-gray-50 rounded-xl">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 7l6.5 6.5M3 7h4m-4 0v4"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-500 leading-relaxed">Minimize background noise</p>
+            </div>
+
+            <div class="flex items-start gap-2.5 p-3 bg-gray-50 rounded-xl">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M17 20h5v-2a4 4 0 00-5.197-3.795M9 20H4v-2a4 4 0
+                       015.197-3.795M15 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-500 leading-relaxed">Ensure both you and the patient are near the microphone</p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── RIGHT PANEL ─────────────────────────────────────────────────── -->
+      <div class="w-80 shrink-0 space-y-4">
+
+        <!-- Patient Details -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+
+          <div class="flex items-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15
+                   10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="font-semibold text-gray-800">Patient Details</h3>
+          </div>
+
+          <!-- Security notice -->
+          <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 flex gap-2">
+            <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0
+                   01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622
+                   5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <div>
+              <p class="text-xs font-semibold text-blue-700">Your data is secure and private.</p>
+              <p class="text-xs text-blue-500 mt-0.5 leading-relaxed">
+                All recordings are encrypted and stored in compliance with healthcare standards.
+              </p>
+            </div>
+          </div>
+
+          <!-- Patient rows -->
+          <div class="divide-y divide-gray-50">
+
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15
+                       10a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span class="text-sm">Name</span>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">{{ patient().name }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4
+                       0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/>
+                </svg>
+                <span class="text-sm">ID</span>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">{{ patient().id }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0
+                       00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-sm">Age</span>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">{{ patient().age }} yrs</span>
+            </div>
+
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                <span class="text-sm">Gender</span>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">{{ patient().gender }}</span>
+            </div>
+
+            <div class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0
+                       01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622
+                       5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                <span class="text-sm">Visit Type</span>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">{{ patient().visitType }}</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- What happens next -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 class="font-semibold text-gray-800 mb-4">What happens next?</h3>
+          <ol class="space-y-4">
+
+            <li class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold
+                          flex items-center justify-center shrink-0">1</div>
+              <div>
+                <p class="text-sm font-semibold text-blue-600">End the recording</p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                  Click 'End Recording' when the consultation is complete.
+                </p>
+              </div>
+            </li>
+
+            <li class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-xs font-bold
+                          flex items-center justify-center shrink-0">2</div>
+              <div>
+                <p class="text-sm font-semibold text-gray-600">AI Processing</p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                  We'll analyze the conversation and extract key clinical information.
+                </p>
+              </div>
+            </li>
+
+            <li class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-xs font-bold
+                          flex items-center justify-center shrink-0">3</div>
+              <div>
+                <p class="text-sm font-semibold text-gray-600">Summary Generated</p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                  The clinical summary will be ready in a separate page.
+                </p>
+              </div>
+            </li>
+
+          </ol>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>

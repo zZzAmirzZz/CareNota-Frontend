@@ -1,11 +1,20 @@
-// src/app/shared/components/create-appointment-modal/create-appointment-modal.component.ts
-import { Component, Input, Output, EventEmitter, OnInit, inject, signal } from '@angular/core';
+// src/app/shared/components/create-appointment-modal/create-appointment-modal.ts
+
+import {
+  Component, Input, Output, EventEmitter,
+  OnInit, OnDestroy, inject, signal
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { DoctorService } from '../../../core/services/doctor.service';
+import { PatientService } from '../../../core/services/patient.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { CreateAppointmentDto, TimeSlot, Doctor } from '../../../core/models/appointment.model';
+import { PatientViewModel } from '../../../core/models/patient.model';
 
 @Component({
   selector: 'app-create-appointment-modal',
@@ -13,128 +22,247 @@ import { CreateAppointmentDto, TimeSlot, Doctor } from '../../../core/models/app
   imports: [CommonModule, FormsModule],
   templateUrl: './create-appointment-modal.html',
 })
-export class CreateAppointmentModal implements OnInit {
-  // Receptionist creates the appointment — their ID comes from auth
-  // patientId may be preselected if opened from patient detail page
+export class CreateAppointmentModal implements OnInit, OnDestroy {
   @Input() preselectedPatientId?: number;
 
   @Output() created = new EventEmitter<void>();
-  @Output() closed = new EventEmitter<void>();
+  @Output() closed  = new EventEmitter<void>();
 
   private appointmentService = inject(AppointmentService);
-  private doctorService = inject(DoctorService);
-  private authService = inject(AuthService);
+  private doctorService      = inject(DoctorService);
+  private patientService     = inject(PatientService);
+  private authService        = inject(AuthService);
+  private destroy$           = new Subject<void>();
 
-  // Form fields
-  selectedDate = signal('');
-  selectedSlot = signal<TimeSlot | null>(null);
-  appointmentType = signal('Consultation');
-  patientIdInput = signal<number | null>(null);
-  selectedDoctorId = signal<number | null>(null);  // doctor is selected IN the form
+  // ── Patient search ────────────────────────────────────────────────────
+  patientSearchQuery   = signal('');
+  patientSearchResults = signal<PatientViewModel[]>([]);
+  selectedPatient      = signal<PatientViewModel | null>(null);
+  isSearchingPatients  = signal(false);
+  showPatientDropdown  = signal(false);
+  private search$      = new Subject<string>();
 
-  // Data
-  doctors = signal<Doctor[]>([]);
-  availableSlots = signal<TimeSlot[]>([]);
-
-  // UI state
+  // ── Doctor ────────────────────────────────────────────────────────────
+  selectedDoctorId = signal<number | null>(null);
+  doctors          = signal<Doctor[]>([]);
   isLoadingDoctors = signal(false);
+
+  // ── Slot ──────────────────────────────────────────────────────────────
+  // Stores the raw YYYY-MM-DD string from the date input
+  selectedDate   = signal('');
+  selectedSlot   = signal<TimeSlot | null>(null);
+  availableSlots = signal<TimeSlot[]>([]);
   isLoadingSlots = signal(false);
+
+  // ── Type ──────────────────────────────────────────────────────────────
+  appointmentType = signal('Consultation');
+
+  // ── UI ────────────────────────────────────────────────────────────────
   isSubmitting = signal(false);
-  error = signal<string | null>(null);
+  error        = signal<string | null>(null);
 
   readonly appointmentTypes = [
     'Consultation', 'Follow-up', 'Check-up', 'Emergency', 'Procedure',
   ];
 
   get todayIso(): string {
-    return new Date().toISOString().split('T')[0];
+    // Returns YYYY-MM-DD in local time (not UTC) — avoids off-by-one day in UTC+2
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 
   ngOnInit(): void {
-    if (this.preselectedPatientId) {
-      this.patientIdInput.set(this.preselectedPatientId);
-    }
     this.selectedDate.set(this.todayIso);
     this.loadDoctors();
+
+    if (this.preselectedPatientId) {
+      this.patientService.getById(this.preselectedPatientId).subscribe({
+        next: p => this.selectedPatient.set(p),
+      });
+    }
+
+    // Debounced patient search
+    this.search$.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(q => {
+        if (q.trim().length < 2) {
+          this.patientSearchResults.set([]);
+          this.isSearchingPatients.set(false);
+          return of([]);
+        }
+        this.isSearchingPatients.set(true);
+        return this.patientService.search(q);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: results => {
+        // ── DEBUG: open browser console to verify what the API returns ──
+        console.log('[PatientSearch] raw results:', results);
+        results.forEach(p => console.log(`  → fullName: "${p.fullName}"  id: ${p.id}`));
+        // ────────────────────────────────────────────────────────────────
+        this.patientSearchResults.set(results);
+        this.isSearchingPatients.set(false);
+        this.showPatientDropdown.set(results.length > 0);
+      },
+      error: () => this.isSearchingPatients.set(false),
+    });
   }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ── Patient handlers ──────────────────────────────────────────────────
+
+  onPatientSearchInput(value: string): void {
+    this.patientSearchQuery.set(value);
+    this.selectedPatient.set(null);
+    this.showPatientDropdown.set(false);
+    this.search$.next(value);
+  }
+
+  selectPatient(patient: PatientViewModel): void {
+    this.selectedPatient.set(patient);
+    this.patientSearchQuery.set(patient.fullName);
+    this.showPatientDropdown.set(false);
+    this.patientSearchResults.set([]);
+  }
+
+  clearPatient(): void {
+    this.selectedPatient.set(null);
+    this.patientSearchQuery.set('');
+    this.patientSearchResults.set([]);
+    this.showPatientDropdown.set(false);
+  }
+
+  // ── Doctor handlers ───────────────────────────────────────────────────
 
   private loadDoctors(): void {
     this.isLoadingDoctors.set(true);
     this.doctorService.getAllDoctors().subscribe({
-      next: (doctors) => {
+      next: doctors => {
+        console.log('[Doctors] loaded:', doctors);
         this.doctors.set(doctors);
         this.isLoadingDoctors.set(false);
       },
       error: () => {
-        this.error.set('Could not load doctors list.');
+        this.error.set('Could not load doctors.');
         this.isLoadingDoctors.set(false);
       },
     });
   }
 
-  onDateOrDoctorChange(): void {
-    const date = this.selectedDate();
-    const doctorId = this.selectedDoctorId();
+onDoctorChange(value: string): void {
+  console.log('[DoctorChange] raw value from <select>:', value);
 
-    // Reset slot selection whenever date or doctor changes
-    this.selectedSlot.set(null);
-    this.availableSlots.set([]);
+  const id = value ? parseInt(value, 10) : null;
 
-    if (!date || !doctorId) return;
+  if (id && id > 0) {
+    console.log('[DoctorChange] ✅ parsed doctorId:', id);
+    this.selectedDoctorId.set(id);
+    this.resetSlots();
+    this.fetchSlotsIfReady();
+  } else {
+    console.log('[DoctorChange] ❌ invalid id');
+    this.selectedDoctorId.set(null);
+    this.resetSlots();
+  }
+}
 
-    this.isLoadingSlots.set(true);
-    this.appointmentService.getAvailableSlots(doctorId, new Date(date)).subscribe({
-      next: (slots) => {
-        this.availableSlots.set(slots);
-        this.isLoadingSlots.set(false);
-      },
-      error: () => {
-        this.error.set('Could not load available slots.');
-        this.isLoadingSlots.set(false);
-      },
-    });
+  onDateChange(value: string): void {
+    // value is already YYYY-MM-DD from the date input
+    console.log('[DateChange] value:', value);
+    this.selectedDate.set(value);
+    this.resetSlots();
+    this.fetchSlotsIfReady();
   }
 
+  private resetSlots(): void {
+    this.selectedSlot.set(null);
+    this.availableSlots.set([]);
+  }
+
+private fetchSlotsIfReady(): void {
+  const doctorId = this.selectedDoctorId();
+  const dateStr = this.selectedDate();
+
+  console.log('[FetchSlots] doctorId:', doctorId, '| date:', dateStr);
+
+  if (!doctorId || doctorId <= 0 || !dateStr) {
+    console.log('[FetchSlots] skipped — missing doctorId or date');
+    return;
+  }
+
+  // Use local date properly
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const localDate = new Date(year, month - 1, day);
+
+  this.isLoadingSlots.set(true);
+  this.error.set(null);
+
+  this.appointmentService.getAvailableSlots(doctorId, localDate).subscribe({
+    next: (slots) => {
+      console.log('[FetchSlots] ✅ received slots:', slots);
+      this.availableSlots.set(slots || []);
+      this.isLoadingSlots.set(false);
+    },
+    error: (err) => {
+      console.error('[FetchSlots] API error:', err);
+      this.error.set('Could not load available slots.');
+      this.isLoadingSlots.set(false);
+    }
+  });
+}
   selectSlot(slot: TimeSlot): void {
     this.selectedSlot.set(slot);
   }
 
-  submit(): void {
-    const slot = this.selectedSlot();
-    const doctorId = this.selectedDoctorId();
-    const patientId = this.preselectedPatientId ?? this.patientIdInput();
-    const receptionistId = this.authService.getReceptionistId(); // from JWT
+  // ── Submit ────────────────────────────────────────────────────────────
 
-    if (!slot || !doctorId || !patientId) {
-      this.error.set('Please fill in all required fields and select a time slot.');
-      return;
-    }
+submit(): void {
+  const slot           = this.selectedSlot();
+  const doctorId       = this.selectedDoctorId();
+  const patient        = this.selectedPatient();
+  const patientId      = this.preselectedPatientId ?? patient?.id ?? null;
+  const receptionistId = this.authService.getReceptionistId();
 
-    const dto: CreateAppointmentDto = {
-      startTime: new Date(slot.start).toISOString(),
-      endTime: new Date(slot.end).toISOString(),
-      appointmentType: this.appointmentType(),
-      patientID: patientId,
-      doctorID: doctorId,
-      receptionistID: receptionistId ?? undefined,
-    };
-
-    this.isSubmitting.set(true);
-    this.error.set(null);
-
-    this.appointmentService.createAppointment(dto).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.created.emit();
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        this.error.set(
-          err?.error?.message ?? 'Failed to create appointment. Please try again.'
-        );
-      },
-    });
+  if (!slot || !doctorId || !patientId) {
+    this.error.set('Please select a patient, doctor, date and time slot.');
+    return;
   }
+
+  const dto: CreateAppointmentDto = {
+    startTime:       new Date(slot.start).toISOString(),
+    endTime:         new Date(slot.end).toISOString(),
+    appointmentType: this.appointmentType(),
+    patientID:       patientId,
+    doctorID:        doctorId,
+    receptionistID:  receptionistId || 1,   // ← Fallback to 1 if not logged in as receptionist
+  };
+
+  console.log('[Submit] DTO being sent:', dto);
+
+  this.isSubmitting.set(true);
+  this.error.set(null);
+
+  this.appointmentService.createAppointment(dto).subscribe({
+    next: () => {
+      this.isSubmitting.set(false);
+      this.created.emit();
+      // Optional: show success message
+    },
+    error: (err) => {
+      this.isSubmitting.set(false);
+      console.error('[CreateAppointment] Error:', err);
+      this.error.set(err?.error?.message || 'Failed to create appointment. Please try again.');
+    },
+  });
+}
 
   formatSlotTime(utcString: string): string {
     return this.appointmentService.toLocalTime(utcString);

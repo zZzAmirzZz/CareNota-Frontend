@@ -1,9 +1,8 @@
-<!-- Overlay -->
- // shared/components/create-appointment-modal/create-appointment-modal.html
+<!-- src/app/shared/components/create-appointment-modal/create-appointment-modal.html -->
+
 <div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50
             flex items-center justify-center p-4">
 
-  <!-- Modal card -->
   <div class="bg-white rounded-3xl shadow-xl w-full max-w-md p-6 space-y-5
               max-h-[90vh] overflow-y-auto">
 
@@ -18,104 +17,182 @@
       </button>
     </div>
 
-    <!-- Patient ID (only if not preselected) -->
+    <!-- ── Patient search ─────────────────────────────────────────────── -->
     @if (!preselectedPatientId) {
-      <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1">
-          Patient ID
+      <div class="relative">
+        <label for="patientSearch" class="block text-xs font-semibold text-gray-500 mb-1">
+          Patient <span class="text-red-400">*</span>
         </label>
-        <input type="number"
-               [ngModel]="patientIdInput()"
-               (ngModelChange)="patientIdInput.set($event)"
-               placeholder="Enter patient ID"
-               class="w-full border border-gray-200 rounded-xl px-4 py-2.5
-                      text-sm focus:outline-none focus:border-navy
-                      focus:ring-1 focus:ring-navy"/>
+
+        <div class="relative">
+          <input
+            id="patientSearch"
+            name="patientSearch"
+            type="text"
+            autocomplete="off"
+            [value]="patientSearchQuery()"
+            (input)="onPatientSearchInput($any($event.target).value)"
+            placeholder="Type patient name to search…"
+            class="w-full border rounded-xl px-4 py-2.5 text-sm
+                   focus:outline-none focus:ring-1 pr-10 transition-colors"
+            [class.border-green-400]="selectedPatient()"
+            [class.border-gray-200]="!selectedPatient()">
+
+          @if (selectedPatient()) {
+            <button type="button" (click)="clearPatient()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2
+                           text-gray-400 hover:text-red-500 transition-colors text-lg leading-none">
+              ×
+            </button>
+          }
+
+          @if (isSearchingPatients()) {
+            <span class="absolute right-3 top-1/2 -translate-y-1/2
+                         inline-block w-4 h-4 border-2 border-gray-300
+                         border-t-blue-600 rounded-full animate-spin"></span>
+          }
+        </div>
+
+        @if (selectedPatient()) {
+          <div class="mt-1.5 flex items-center gap-2 text-xs text-green-700
+                      bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0
+                   00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z"
+                clip-rule="evenodd"/>
+            </svg>
+            <span class="font-medium">{{ selectedPatient()!.fullName }}</span>
+            @if (selectedPatient()!.id > 0) {
+              <span class="text-green-500">· ID {{ selectedPatient()!.id }}</span>
+            }
+          </div>
+        }
+
+        @if (showPatientDropdown() && patientSearchResults().length > 0) {
+          <ul class="absolute z-20 mt-1 w-full bg-white border border-gray-200
+                     rounded-xl shadow-lg max-h-48 overflow-y-auto">
+            <!--
+              track $index instead of p.id — safe even if backend returns
+              duplicate or missing ids. We only display, not mutate, so index is fine.
+            -->
+            @for (p of patientSearchResults(); track $index) {
+              <li>
+                <button type="button"
+                        (click)="selectPatient(p)"
+                        class="w-full text-left px-4 py-2.5 text-sm
+                               hover:bg-blue-50 transition-colors
+                               flex items-center justify-between gap-2">
+                  <span class="font-medium text-gray-800">{{ p.fullName }}</span>
+                  @if (p.id > 0) {
+                    <span class="text-xs text-gray-400 flex-shrink-0">ID {{ p.id }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (!isSearchingPatients() && patientSearchQuery().length >= 2
+             && patientSearchResults().length === 0 && !selectedPatient()) {
+          <p class="mt-1 text-xs text-gray-400">No patients found for "{{ patientSearchQuery() }}"</p>
+        }
       </div>
     }
 
-    <!-- Doctor selector — receptionist picks the doctor -->
+    <!-- ── Doctor selector ────────────────────────────────────────────── -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 mb-1">
-        Doctor
+      <label for="doctorSelect" class="block text-xs font-semibold text-gray-500 mb-1">
+        Doctor <span class="text-red-400">*</span>
       </label>
 
       @if (isLoadingDoctors()) {
-        <p class="text-sm text-gray-400">Loading doctors...</p>
+        <p class="text-sm text-gray-400">Loading doctors…</p>
       } @else {
-        <select [ngModel]="selectedDoctorId()"
-                (ngModelChange)="selectedDoctorId.set(+$event); onDateOrDoctorChange()"
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5
-                       text-sm focus:outline-none focus:border-navy
-                       focus:ring-1 focus:ring-navy">
-          <option [value]="null" disabled selected>Select a doctor</option>
-          @for (doctor of doctors(); track doctor.id) {
+        <select
+          id="doctorSelect"
+          name="doctorSelect"
+          (change)="onDoctorChange($any($event.target).value)"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5
+                 text-sm focus:outline-none focus:border-blue-500
+                 focus:ring-1 focus:ring-blue-200 bg-white">
+<option value="" selected>Select a doctor...</option>          <!--
+            track $index — avoids NG0955 if doctors come back with bad ids.
+            [value]="doctor.id" is still correct — onDoctorChange gets the real id string.
+          -->
+          @for (doctor of doctors(); track $index) {
             <option [value]="doctor.id">
-              {{ doctor.fullName }}
-              @if (doctor.specialty) { — {{ doctor.specialty }} }
+              {{ doctor.fullName }}@if (doctor.specialty) { — {{ doctor.specialty }}}
             </option>
           }
         </select>
       }
     </div>
 
-    <!-- Appointment Type -->
+    <!-- ── Appointment Type ───────────────────────────────────────────── -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 mb-1">
+      <label for="appointmentType" class="block text-xs font-semibold text-gray-500 mb-1">
         Appointment Type
       </label>
-      <select [ngModel]="appointmentType()"
-              (ngModelChange)="appointmentType.set($event)"
-              class="w-full border border-gray-200 rounded-xl px-4 py-2.5
-                     text-sm focus:outline-none focus:border-navy
-                     focus:ring-1 focus:ring-navy">
-        @for (type of appointmentTypes; track type) {
+      <select
+        id="appointmentType"
+        name="appointmentType"
+        [ngModel]="appointmentType()"
+        (ngModelChange)="appointmentType.set($event)"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5
+               text-sm focus:outline-none focus:border-blue-500
+               focus:ring-1 focus:ring-blue-200 bg-white">
+        @for (type of appointmentTypes; track $index) {
           <option [value]="type">{{ type }}</option>
         }
       </select>
     </div>
 
-    <!-- Date picker -->
+    <!-- ── Date picker ───────────────────────────────────────────────── -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 mb-1">
-        Date
+      <label for="appointmentDate" class="block text-xs font-semibold text-gray-500 mb-1">
+        Date <span class="text-red-400">*</span>
       </label>
-      <input type="date"
-             [ngModel]="selectedDate()"
-             (ngModelChange)="selectedDate.set($event); onDateOrDoctorChange()"
-             [min]="todayIso"
-             class="w-full border border-gray-200 rounded-xl px-4 py-2.5
-                    text-sm focus:outline-none focus:border-navy
-                    focus:ring-1 focus:ring-navy"/>
+      <input
+        id="appointmentDate"
+        name="appointmentDate"
+        type="date"
+        [ngModel]="selectedDate()"
+        (ngModelChange)="onDateChange($event)"
+        [min]="todayIso"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5
+               text-sm focus:outline-none focus:border-blue-500
+               focus:ring-1 focus:ring-blue-200"/>
     </div>
 
-    <!-- Time slot picker -->
+    <!-- ── Time slot picker ──────────────────────────────────────────── -->
     <div>
       <label class="block text-xs font-semibold text-gray-500 mb-2">
-        Available Slots
+        Available Slots <span class="text-red-400">*</span>
       </label>
 
       @if (!selectedDoctorId() || !selectedDate()) {
-        <p class="text-sm text-gray-400">
-          Select a doctor and date first.
-        </p>
+        <p class="text-sm text-gray-400">Select a doctor and date first.</p>
       } @else if (isLoadingSlots()) {
-        <p class="text-sm text-gray-400">Loading slots...</p>
+        <div class="flex items-center gap-2 text-sm text-gray-400">
+          <span class="inline-block w-4 h-4 border-2 border-gray-300
+                       border-t-blue-600 rounded-full animate-spin"></span>
+          Loading slots…
+        </div>
       } @else if (availableSlots().length === 0) {
-        <p class="text-sm text-gray-400">
-          No available slots for this date.
-        </p>
+        <p class="text-sm text-gray-400">No available slots for this date.</p>
       } @else {
         <div class="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
           @for (slot of availableSlots(); track slot.start) {
             <button
+              type="button"
               (click)="selectSlot(slot)"
-              [class.bg-navy]="selectedSlot()?.start === slot.start"
+              class="border rounded-xl py-2 text-xs font-medium transition-colors"
+              [class.bg-blue-700]="selectedSlot()?.start === slot.start"
               [class.text-white]="selectedSlot()?.start === slot.start"
-              [class.border-navy]="selectedSlot()?.start === slot.start"
-              class="border border-gray-200 rounded-xl py-2 text-xs
-                     font-medium text-gray-700 hover:border-navy
-                     transition-colors">
+              [class.border-blue-700]="selectedSlot()?.start === slot.start"
+              [class.border-gray-200]="selectedSlot()?.start !== slot.start"
+              [class.text-gray-700]="selectedSlot()?.start !== slot.start">
               {{ formatSlotTime(slot.start) }}
             </button>
           }
@@ -123,21 +200,22 @@
       }
     </div>
 
-    <!-- Error -->
+    <!-- ── Error banner ──────────────────────────────────────────────── -->
     @if (error()) {
-      <p class="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-xl">
+      <p class="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-xl border border-red-100">
         {{ error() }}
       </p>
     }
 
-    <!-- Submit -->
+    <!-- ── Submit ────────────────────────────────────────────────────── -->
     <button
+      type="button"
       (click)="submit()"
-      [disabled]="isSubmitting() || !selectedSlot()"
-      class="w-full bg-navy text-white font-semibold py-3 rounded-xl
-             text-sm hover:bg-navy-dark transition-colors
+      [disabled]="isSubmitting() || !selectedSlot() || (!preselectedPatientId && !selectedPatient())"
+      class="w-full bg-blue-700 text-white font-semibold py-3 rounded-xl
+             text-sm hover:bg-blue-800 transition-colors
              disabled:opacity-50 disabled:cursor-not-allowed">
-      {{ isSubmitting() ? 'Booking...' : 'Confirm Appointment' }}
+      {{ isSubmitting() ? 'Booking…' : 'Confirm Appointment' }}
     </button>
 
   </div>

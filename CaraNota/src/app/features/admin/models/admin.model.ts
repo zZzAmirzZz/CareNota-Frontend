@@ -1,54 +1,74 @@
-// src/app/features/admin/models/admin.model.ts
+import { Doctor } from '../../../core/models/appointment.model';
 
-export type AdminManagedRole = 'doctor' | 'receptionist';
+// ── Admin self ─────────────────────────────────────────────────────────────
 
-// ─── Doctor profile (GET /api/Doctor, GET /api/Doctor/{id}) ──────────────────
-export interface DoctorProfile {
-  id: number;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  gender?: string;
-  specialty?: string;
-}
-
-// ─── Receptionist profile (GET /api/Receptionist — ask backend to add) ───────
-export interface ReceptionistProfile {
-  id: number;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  gender?: string;
-}
-
-// ─── Admin self profile (GET /api/admin/profile) ─────────────────────────────
-// Shape is inferred from Postman — confirm exact fields with backend
 export interface AdminProfile {
-  id: number;
+  id: number;            // ← confirmed: number
   fullName: string;
   email: string;
+  phoneNumber: string;
+  gender?: string;
+}
+
+export interface UpdateAdminProfileDto {
+  fullName?: string;
   phoneNumber?: string;
   gender?: string;
 }
 
-// ─── Change password (PUT /api/admin/change-password) ────────────────────────
 export interface ChangePasswordDto {
   currentPassword: string;
   newPassword: string;
+  confirmNewPassword: string;
 }
 
-// ─── Payload for creating a doctor or receptionist via Auth/Register ──────────
-export interface CreateStaffRequest {
+// ── Staff creation ─────────────────────────────────────────────────────────
+
+export type AdminManagedRole = 'doctor' | 'receptionist';
+
+export interface CreateDoctorRequest {
   fullName: string;
   email: string;
-  phoneNumber: string;
-  gender?: string;
   password: string;
-  role: AdminManagedRole;
-  specialty?: string; // doctor only — sent via PUT /api/Doctor/{id} after register
+  phoneNumber: string;
+  specialty: string;  // ← confirmed field name
+  licenseNumber?: string;
 }
 
-// ─── Dashboard counters ───────────────────────────────────────────────────────
+export interface CreateReceptionistRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+}
+
+export interface CreateStaffResponse {
+  userId: number;          // ← confirmed: number
+  fullName: string;
+  email: string;
+  role: AdminManagedRole;
+  message: string;
+}
+
+// ── Profiles ───────────────────────────────────────────────────────────────
+
+export interface DoctorProfile {
+  id: number;
+  fullName: string;
+  email: string;
+  specialty: string;        // ← Correct
+  phoneNumber?: string;
+}
+
+export interface ReceptionistProfile {
+  id: number;              // ← confirmed: number
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+
 export interface AdminStats {
   totalDoctors: number;
   totalReceptionists: number;

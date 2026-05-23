@@ -2,7 +2,7 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { Doctor } from '../models/appointment.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
@@ -13,42 +13,48 @@ export class DoctorService {
   private auth    = inject(AuthService);
   private baseUrl = `${environment.apiUrl}/api/Doctor`;
 
-  // ── Read ──────────────────────────────────────────────────────────────
-
+  // Normalizes whatever the backend sends into the Doctor shape the app uses.
+  // The .NET backend returns doctorId / DoctorId — this maps it to id.
+private normalize(raw: any): Doctor {
+  return {
+    id: raw.id ?? raw.doctorID ?? raw.doctorId ?? 0,
+    fullName: raw.fullName ?? raw.name ?? raw.FullName ?? '',
+    email: raw.email ?? raw.Email ?? '',
+    specialty: raw.specialty ?? raw.Specialty ?? raw.specialization ?? '', // ← added fallback
+    phoneNumber: raw.phoneNumber ?? raw.PhoneNumber,
+  };
+}
   getAllDoctors(): Observable<Doctor[]> {
-    return this.http.get<Doctor[]>(this.baseUrl);
+    return this.http.get<any[]>(this.baseUrl).pipe(
+      map(list => list.map(d => this.normalize(d)))
+    );
   }
 
   getDoctorById(id: number): Observable<Doctor> {
-    return this.http.get<Doctor>(`${this.baseUrl}/${id}`);
+    return this.http.get<any>(`${this.baseUrl}/${id}`).pipe(
+      map(d => this.normalize(d))
+    );
   }
 
   getDoctorsBySpecialty(specialty: string): Observable<Doctor[]> {
-    return this.http.get<Doctor[]>(`${this.baseUrl}/specialty/${specialty}`);
+    return this.http.get<any[]>(`${this.baseUrl}/specialty/${specialty}`).pipe(
+      map(list => list.map(d => this.normalize(d)))
+    );
   }
 
-  // ── Update ────────────────────────────────────────────────────────────
-
-  // PUT /api/Doctor/{id} — only the specialty field is accepted by the backend
   updateSpecialty(id: number, specialty: string): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${id}`, { specialty });
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────
-
-  // DELETE /api/Doctor/{id} — admin only, hard delete
   deleteDoctor(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  // ── ID resolution ─────────────────────────────────────────────────────
-
-  // Call once after login to store the integer doctorId in localStorage.
-  // The backend accepts the userId (string from JWT) and returns the doctor profile.
   resolveDoctorId(): Observable<Doctor> {
     const userId = this.auth.getUserId();
     if (!userId) throw new Error('No userId found — user must be logged in');
-    return this.http.get<Doctor>(`${this.baseUrl}/${userId}`).pipe(
+    return this.http.get<any>(`${this.baseUrl}/${userId}`).pipe(
+      map(d => this.normalize(d)),
       tap(doctor => this.auth.saveDoctorId(doctor.id))
     );
   }

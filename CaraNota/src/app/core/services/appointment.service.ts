@@ -16,13 +16,19 @@ export class AppointmentService {
   private http = inject(HttpClient);
 
   // NOTE: capital A in Appointment — backend is case-sensitive
-  private baseUrl = `${environment.apiUrl}/api/Appointment`;
-
+private baseUrl = environment.apiUrl;
   // ── Create ────────────────────────────────────────────────────────────
 
-  createAppointment(dto: CreateAppointmentDto): Observable<Appointment> {
-    return this.http.post<Appointment>(this.baseUrl, dto);
-  }
+// ── Create ────────────────────────────────────────────────────────────
+
+createAppointment(dto: CreateAppointmentDto): Observable<Appointment> {
+  const url = `${environment.apiUrl}/api/Appointment`;
+
+  console.log('[CreateAppointment] Sending to URL:', url);
+  console.log('[CreateAppointment] Payload:', dto);
+
+  return this.http.post<Appointment>(url, dto);
+}
 
   // ── Read ──────────────────────────────────────────────────────────────
 
@@ -47,12 +53,18 @@ export class AppointmentService {
   }
 
   // Used for today's visits: pass today 00:00 → 23:59 in ISO UTC
-  getByDateRange(from: Date, to: Date): Observable<Appointment[]> {
-    const params = new HttpParams()
-      .set('from', from.toISOString())
-      .set('to', to.toISOString());
-    return this.http.get<Appointment[]>(`${this.baseUrl}/date-range`, { params });
-  }
+getByDateRange(from: Date, to: Date) {
+  return this.http.get<Appointment[]>(
+    `${this.baseUrl}/api/Appointment/date-range`,
+    {
+      params: {
+        from: from.toISOString(),
+        to: to.toISOString()
+      },
+
+    }
+  );
+}
 
   // Doctor weekly schedule — used in scheduling page
   getDoctorWeekly(doctorId: number, startOfWeek: Date): Observable<Appointment[]> {
@@ -63,12 +75,17 @@ export class AppointmentService {
   }
 
   // Available booking slots — used in Create Appointment modal
-  getAvailableSlots(doctorId: number, date: Date): Observable<TimeSlot[]> {
-    const params = new HttpParams().set('date', date.toISOString().split('T')[0]);
-    return this.http.get<TimeSlot[]>(
-      `${this.baseUrl}/doctor/${doctorId}/available-slots`, { params }
-    );
-  }
+// Available booking slots — used in Create Appointment modal
+getAvailableSlots(doctorId: number, date: Date): Observable<TimeSlot[]> {
+  const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  return this.http.get<TimeSlot[]>(
+    `${environment.apiUrl}/api/Appointment/doctor/${doctorId}/available-slots`,
+    {
+      params: { date: dateStr }
+    }
+  );
+}
 
   // ── Update ────────────────────────────────────────────────────────────
 
@@ -77,7 +94,7 @@ export class AppointmentService {
   }
 
   cancelAppointment(id: number): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/${id}/cancel`, {});
+    return this.http.put<void>(`${this.baseUrl}/api/Appointment/${id}/cancel`, {});
   }
 
   // ── Delete ────────────────────────────────────────────────────────────

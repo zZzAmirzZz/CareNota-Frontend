@@ -1,13 +1,12 @@
 // src/app/features/receptionist/pages/create-account/create-account.ts
+
 import { Component, inject, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { of, delay } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AccountForm } from '../../../../shared/components/account-form/account-form';
 import { RegisterRequest } from '../../../../core/models/user';
-import {ReceptionistNavbar } from "../../receptionist-layout/receptionist-navbar/receptionist-navbar";
-import { USE_FAKE_DATA } from '../../fake-data';
+import { ReceptionistNavbar } from '../../receptionist-layout/receptionist-navbar/receptionist-navbar';
 
 @Component({
   selector: 'app-create-account',
@@ -31,17 +30,6 @@ export class CreateAccount {
     this.isLoading.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');
-
-    if (USE_FAKE_DATA) {
-      // Simulate a successful API call
-      of(null).pipe(delay(800)).subscribe(() => {
-        this.isLoading.set(false);
-        this.successMessage.set(`Account created for ${dto.fullName}!`);
-        this.accountForm?.reset();
-        setTimeout(() => this.router.navigate(['/receptionist/dashboard']), 1500);
-      });
-      return;
-    }
 
     this.authService.register(dto).subscribe({
       next: () => {

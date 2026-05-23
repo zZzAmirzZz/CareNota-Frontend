@@ -79,7 +79,7 @@ export class CreateUserComponent {
             this.router.navigate([`/admin/${this.selectedRole === 'doctor' ? 'doctors' : 'receptionists'}`]);
           }, 1500);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.errorMessage = err?.error?.message ?? 'Something went wrong. Please try again.';
           this.submitting = false;
         },
