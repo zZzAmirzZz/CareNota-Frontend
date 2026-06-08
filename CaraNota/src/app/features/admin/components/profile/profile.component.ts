@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
-import { AdminProfile } from '../../models/admin-profile.model';
+import { AdminProfile } from '../../models/admin.model';  // ← fixed path
 
 @Component({
   selector: 'app-profile',
@@ -11,13 +11,12 @@ import { AdminProfile } from '../../models/admin-profile.model';
   templateUrl: './profile.component.html',
 })
 export class ProfileComponent implements OnInit {
-  private fb     = inject(FormBuilder);
-  private admin  = inject(AdminService);
+  private fb    = inject(FormBuilder);
+  private admin = inject(AdminService);
 
   profile: AdminProfile | null = null;
   loading = true;
 
-  // ui state
   activeTab: 'info' | 'password' = 'info';
   savingInfo     = false;
   savingPassword = false;
@@ -47,7 +46,7 @@ export class ProfileComponent implements OnInit {
   ngOnInit(): void {
     this.admin.getAdminProfile().subscribe({
       next: (data) => {
-        this.profile = data as AdminProfile;
+        this.profile = data;
         this.infoForm.patchValue({
           fullName:    this.profile.fullName,
           phoneNumber: this.profile.phoneNumber,
@@ -68,14 +67,14 @@ export class ProfileComponent implements OnInit {
   }
 
   private passwordMatchValidator(group: AbstractControl) {
-    const nw  = group.get('newPassword')?.value;
-    const cf  = group.get('confirmPassword')?.value;
+    const nw = group.get('newPassword')?.value;
+    const cf = group.get('confirmPassword')?.value;
     return nw === cf ? null : { mismatch: true };
   }
 
   saveInfo(): void {
     if (this.infoForm.invalid) { this.infoForm.markAllAsTouched(); return; }
-    this.savingInfo = true;
+    this.savingInfo  = true;
     this.infoSuccess = '';
     this.infoError   = '';
     const v = this.infoForm.value;
@@ -107,8 +106,9 @@ export class ProfileComponent implements OnInit {
     this.pwError   = '';
     const v = this.passwordForm.value;
     this.admin.changeAdminPassword({
-      currentPassword: v.currentPassword!,
-      newPassword:     v.newPassword!,
+      currentPassword:    v.currentPassword!,
+      newPassword:        v.newPassword!,
+      confirmNewPassword: v.confirmPassword!,  // ← was missing
     }).subscribe({
       next: () => {
         this.pwSuccess      = 'Password changed successfully.';

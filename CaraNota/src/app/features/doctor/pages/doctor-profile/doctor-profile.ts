@@ -1,7 +1,5 @@
 // src/app/features/doctor/pages/doctor-profile/doctor-profile.ts
-
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DoctorNavbar } from '../../../../layout/doctor-layout/doctor-navbar/doctor-navbar';
 import { DoctorService } from '../../../../core/services/doctor.service';
@@ -10,7 +8,7 @@ import { Doctor } from '../../../../core/models/appointment.model';
 @Component({
   selector: 'app-doctor-profile',
   standalone: true,
-  imports: [CommonModule, RouterModule, DoctorNavbar],
+  imports: [RouterModule, DoctorNavbar],
   templateUrl: './doctor-profile.html',
   styleUrl: './doctor-profile.css',
 })
@@ -22,16 +20,15 @@ export class DoctorProfile implements OnInit {
   error     = signal<string | null>(null);
   initials  = signal('DR');
 
-  // Static display stats — replace with real API calls if backend adds them
+  // No stats endpoint exists in the swagger yet — show placeholders
   stats = [
-    { label: 'Total Patients', value: '248', icon: 'patients' },
-    { label: 'This Month',     value: '34',  icon: 'month'    },
-    { label: 'Avg. Rating',    value: '4.9', icon: 'star'     },
-    { label: 'Years Active',   value: '7',   icon: 'years'    },
+    { label: 'Total Patients', value: '—', icon: 'patients' },
+    { label: 'This Month',     value: '—', icon: 'month'    },
+    { label: 'Avg. Rating',    value: '—', icon: 'star'     },
+    { label: 'Years Active',   value: '—', icon: 'years'    },
   ];
 
   ngOnInit(): void {
-    // ✅ resolveDoctorProfile() uses getDoctorId() (integer) → /api/Doctor/3
     this.doctorService.resolveDoctorProfile().subscribe({
       next: (doc: Doctor) => {
         this.doctor.set(doc);

@@ -15,6 +15,8 @@ import { AuthService }     from '../../../../core/services/auth.service';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/footer/footer.component';
 import { PatientViewModel } from '../../../../core/models/patient.model';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { bloodType, gender, maxLength, noWhitespace } from '../../../../core/validators/app.validators';
 
 @Component({
   selector: 'app-patient-profile',
@@ -23,6 +25,16 @@ import { PatientViewModel } from '../../../../core/models/patient.model';
   templateUrl: './profile.component.html',
 })
 export class ProfileComponent implements OnInit {
+
+  private fb = inject(FormBuilder);
+
+healthForm = this.fb.group({
+  gender:        [''],
+  bloodType:     ['', [bloodType]],
+  allergies:     ['', [maxLength(500)]],
+  insuranceInfo: ['', [maxLength(300)]],
+});
+
   private patientService = inject(PatientService);
   private authService    = inject(AuthService);
 
@@ -56,15 +68,17 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  openEditHealth(): void {
-    const p = this.patient();
-    if (!p) return;
-    this.editBloodType.set(p.bloodType  ?? '');
-    this.editAllergies.set(p.allergies  ?? '');
-    this.editInsurance.set(p.insuranceInfo ?? '');
-    this.editGender.set(p.gender        ?? '');
-    this.isEditingHealth.set(true);
-  }
+openEditHealth(): void {
+  const p = this.patient();
+  if (!p) return;
+  this.healthForm.patchValue({
+    gender:        p.gender        ?? '',
+    bloodType:     p.bloodType     ?? '',
+    allergies:     p.allergies     ?? '',
+    insuranceInfo: p.insuranceInfo ?? '',
+  });
+  this.isEditingHealth.set(true);
+}
 
   cancelEditHealth(): void { this.isEditingHealth.set(false); }
 

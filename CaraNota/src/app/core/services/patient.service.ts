@@ -2,7 +2,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // CHANGES vs previous version:
 //   ✅ Uses API constants
-//   ✅ Removed USE_FAKE_DATA flag (set production-ready; add back locally if needed)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, inject } from '@angular/core';

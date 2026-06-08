@@ -189,7 +189,7 @@ export class AuthService {
   redirectByRole(role: UserRole): void {
     const routes: Record<UserRole, string> = {
       doctor:       '/doctor/dashboard',
-      patient:      '/patient/dashboard',
+      patient:      '/patient/home',
       receptionist: '/receptionist/dashboard',
       admin:        '/admin/dashboard',
     };

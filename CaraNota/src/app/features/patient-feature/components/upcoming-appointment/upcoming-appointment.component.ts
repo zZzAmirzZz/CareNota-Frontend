@@ -1,5 +1,5 @@
 // src/app/features/patient/components/upcoming-appointment/upcoming-appointment.component.ts
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface UpcomingAppointmentData {
@@ -17,7 +17,6 @@ export interface UpcomingAppointmentData {
 })
 export class UpcomingAppointmentComponent {
   @Input({ required: true }) appointment!: UpcomingAppointmentData;
-  @Output() cancel = new EventEmitter<number>();
 
   formatDateTime(iso: string): string {
     const d = new Date(iso);

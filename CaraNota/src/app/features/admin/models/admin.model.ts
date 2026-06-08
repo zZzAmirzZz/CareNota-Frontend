@@ -2,26 +2,26 @@ import { Doctor } from '../../../core/models/appointment.model';
 
 // ── Admin self ─────────────────────────────────────────────────────────────
 
-export interface AdminProfile {
-  id: number;            // ← confirmed: number
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  gender?: string;
+// In your admin.model.ts — replace the ChangePasswordDto interface:
+
+export interface ChangePasswordDto {
+  currentPassword:    string;
+  newPassword:        string;
+  confirmNewPassword: string;  // ← was missing — required by Swagger
 }
 
 export interface UpdateAdminProfileDto {
-  fullName?: string;
+  fullName?:    string;  // all optional per Swagger (nullable: true)
   phoneNumber?: string;
-  gender?: string;
+  gender?:      string;
 }
 
-export interface ChangePasswordDto {
-  currentPassword: string;
-  newPassword: string;
-  confirmNewPassword: string;
+export interface AdminProfile {
+  fullName:    string;
+  email:       string;
+  phoneNumber: string;
+  gender?:     string;
 }
-
 // ── Staff creation ─────────────────────────────────────────────────────────
 
 export type AdminManagedRole = 'doctor' | 'receptionist';

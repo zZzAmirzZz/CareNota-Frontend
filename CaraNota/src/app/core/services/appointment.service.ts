@@ -72,12 +72,18 @@ export class AppointmentService {
   }
 
   // GET /api/Appointment/doctor/{id}/available-slots?date=YYYY-MM-DD
-  getAvailableSlots(doctorId: number, date: Date): Observable<TimeSlot[]> {
-    const dateStr = date.toISOString().split('T')[0];
-    return this.http.get<TimeSlot[]>(API.APPOINTMENT.AVAILABLE_SLOTS(doctorId), {
-      params: { date: dateStr },
-    });
-  }
+getAvailableSlots(
+  doctorId: number,
+  dateString: string
+): Observable<TimeSlot[]> {
+
+  return this.http.get<TimeSlot[]>(
+    API.APPOINTMENT.AVAILABLE_SLOTS(doctorId),
+    {
+      params: { date: dateString },
+    }
+  );
+}
 
   // ── Update ────────────────────────────────────────────────────────────────
   updateAppointment(id: number, dto: UpdateAppointmentDto): Observable<Appointment> {

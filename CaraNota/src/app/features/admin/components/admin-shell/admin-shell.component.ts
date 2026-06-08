@@ -2,7 +2,7 @@ import { Component, OnInit, inject, HostListener } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AdminService } from '../../services/admin.service';
-import { AdminProfile } from '../../models/admin-profile.model';
+import { AdminProfile } from '../../models/admin.model';
 
 @Component({
   selector: 'app-admin-shell',

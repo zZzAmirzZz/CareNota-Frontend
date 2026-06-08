@@ -1,0 +1,12 @@
+/* src/app/features/doctor/pages/visit-summary/visit-summary.css */
+/* All heavy styling is Tailwind — this file holds only non-utility overrides */
+
+:host {
+  display: block;
+}
+
+/* Ensure textarea auto-grows on focus in modal */
+textarea {
+  field-sizing: content;
+  min-height: 120px;
+}

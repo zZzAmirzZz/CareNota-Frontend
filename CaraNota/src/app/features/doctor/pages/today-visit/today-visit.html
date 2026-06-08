@@ -87,7 +87,7 @@
               </span>
 
               <button
-                (click)="startVisit(appt)"
+                (click)="openModeModal(appt)"
                 [disabled]="loadingAppointmentId() === appt.appointmentID"
                 class="bg-navy text-white text-sm font-semibold px-5 py-2
                        rounded-full hover:bg-navy-dark transition-colors
@@ -114,3 +114,93 @@
 
   </main>
 </div>
+
+<!-- ── MODE SELECTION MODAL ─────────────────────────────────────────────────── -->
+@if (modeSelection()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+       (click)="closeModeModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+         (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-bold text-gray-900">How would you like to document this visit?</h2>
+        <button (click)="closeModeModal()" class="text-gray-400 hover:text-gray-700 transition-colors p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mb-6">
+        Patient: <span class="font-semibold text-gray-800">{{ modeSelection()?.appointment?.patientName }}</span>
+      </p>
+
+      <!-- Two mode cards -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+
+        <!-- Record with AI -->
+        <button
+          (click)="confirmMode('recording')"
+          [disabled]="loadingAppointmentId() !== null"
+          class="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200
+                 hover:border-blue-400 hover:bg-blue-50 transition-all group
+                 disabled:opacity-60 disabled:cursor-not-allowed text-center">
+          <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center
+                      group-hover:bg-blue-200 transition-colors">
+            <svg class="w-7 h-7 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 1a4 4 0 014 4v6a4 4 0 01-8 0V5a4 4 0 014-4zm0 2a2 2 0
+                0 00-2 2v6a2 2 0 004 0V5a2 2 0 00-2-2zm-1 14.93V20H9v2h6v-2h-2v-2.07A8.001
+                8.001 0 004 11H2a10 10 0 0020 0h-2a8.001 8.001 0 00-7 2.93z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+              Start Recording
+            </p>
+            <p class="text-xs text-gray-400 mt-1 leading-snug">
+              Record the consultation — AI generates SOAP notes automatically
+            </p>
+          </div>
+        </button>
+
+        <!-- Manual entry -->
+        <button
+          (click)="confirmMode('manual')"
+          [disabled]="loadingAppointmentId() !== null"
+          class="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-200
+                 hover:border-indigo-400 hover:bg-indigo-50 transition-all group
+                 disabled:opacity-60 disabled:cursor-not-allowed text-center">
+          <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center
+                      group-hover:bg-indigo-200 transition-colors">
+            <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828
+                   2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+              Add Manual Notes
+            </p>
+            <p class="text-xs text-gray-400 mt-1 leading-snug">
+              Type SOAP notes directly — no recording needed
+            </p>
+          </div>
+        </button>
+
+      </div>
+
+      <!-- Loading indicator while visit is being created -->
+      @if (loadingAppointmentId() !== null) {
+        <div class="flex items-center justify-center gap-3 py-2 text-sm text-gray-500">
+          <svg class="w-4 h-4 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+          </svg>
+          Creating visit record…
+        </div>
+      }
+
+    </div>
+  </div>
+}

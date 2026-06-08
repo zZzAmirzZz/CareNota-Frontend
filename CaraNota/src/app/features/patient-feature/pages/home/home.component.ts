@@ -1,12 +1,10 @@
 // src/app/features/patient/pages/home/home.component.ts
 //
-// Data sources (all from core services):
+// Data sources:
 //   GET /Api/Visit/Patient/{patientId}           → total visits + recent visit
 //   GET /api/Appointment/patient/{patientId}     → upcoming (Scheduled) appointments
 //   GET /Api/Prescription/Visit/{visitId} +
 //       /Api/Prescription/{id}/Medications       → active medication count
-//
-// The page extracts what it needs from those calls without dedicated endpoints.
 
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -42,26 +40,26 @@ export class HomeComponent implements OnInit {
   private router             = inject(Router);
 
   // ── Signals ───────────────────────────────────────────────────────────────
-  patientName         = signal('');
-  totalVisits         = signal(0);
-  activeMedications   = signal(0);
-  upcomingCount       = signal(0);
-  lastVisitDate       = signal('');
+  patientName          = signal('');
+  totalVisits          = signal(0);
+  activeMedications    = signal(0);
+  upcomingCount        = signal(0);
+  lastVisitDate        = signal('');
 
-  recentVisit         = signal<VisitCardData | null>(null);
+  recentVisit          = signal<VisitCardData | null>(null);
   upcomingAppointments = signal<UpcomingAppointmentData[]>([]);
 
   isLoading = signal(true);
   error     = signal<string | null>(null);
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  greeting = computed(() => `Welcome back , ${this.patientName()}!`);
+  greeting = computed(() => `Welcome back, ${this.patientName()}!`);
 
-ngOnInit(): void {
-  const patientId = this.authService.getPatientId();
-  if (!patientId) { this.error.set('Could not identify patient.'); this.isLoading.set(false); return; }
-  this.loadData(patientId);
-}
+  ngOnInit(): void {
+    const patientId = this.authService.getPatientId();
+    if (!patientId) { this.error.set('Could not identify patient.'); this.isLoading.set(false); return; }
+    this.loadData(patientId);
+  }
 
   private loadData(patientId: number): void {
     const visits$       = this.patientService.getVisits(patientId).pipe(catchError(() => of([])));
@@ -70,14 +68,11 @@ ngOnInit(): void {
 
     forkJoin({ visits: visits$, appointments: appointments$, patient: patient$ }).subscribe({
       next: ({ visits, appointments, patient }) => {
-        // Patient name
         if (patient) this.patientName.set((patient as any).fullName ?? '');
 
-        // Visits stats
         const visitList = visits as any[];
         this.totalVisits.set(visitList.length);
 
-        // Last visit date
         const sorted = [...visitList].sort(
           (a, b) => +new Date(b.visitDate) - +new Date(a.visitDate)
         );
@@ -85,15 +80,10 @@ ngOnInit(): void {
           this.lastVisitDate.set(
             new Date(sorted[0].visitDate).toLocaleDateString('en-CA')
           );
+          this.buildVisitCard(patientId, sorted[0]);
+          this.loadActiveMeds(sorted[0].id);
         }
 
-        // Recent visit card — most recent visit
-        if (sorted.length) {
-          const latest = sorted[0];
-          this.buildVisitCard(patientId, latest);
-        }
-
-        // Upcoming appointments (Scheduled only)
         const apptList = appointments as any[];
         const upcoming = apptList.filter((a: any) => a.status === 'Scheduled');
         this.upcomingCount.set(upcoming.length);
@@ -106,11 +96,6 @@ ngOnInit(): void {
           }))
         );
 
-        // Active medications: fetch prescription for most recent visit
-        if (sorted.length) {
-          this.loadActiveMeds(sorted[0].id);
-        }
-
         this.isLoading.set(false);
       },
       error: () => {
@@ -121,7 +106,6 @@ ngOnInit(): void {
   }
 
   private buildVisitCard(patientId: number, visit: any): void {
-    // Fetch prescription for this visit to get medication names
     this.http
       .get<any>(`${environment.apiUrl}/Api/Prescription/Visit/${visit.id}`)
       .pipe(
@@ -158,25 +142,9 @@ ngOnInit(): void {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  onCancelAppointment(id: number): void {
-    if (!confirm('Cancel this appointment?')) return;
-    // PUT /api/Appointment/{id}/cancel
-    this.appointmentService.cancelAppointment(id).subscribe({
-      next: () => {
-        this.upcomingAppointments.update(list =>
-          list.filter(a => a.appointmentID !== id)
-        );
-        this.upcomingCount.update(n => Math.max(0, n - 1));
-      },
-      error: () => alert('Failed to cancel. Please try again.'),
-    });
-  }
-
   onViewVisitDetails(visitId: number): void {
     this.router.navigate(['/patient/visit-detail', visitId]);
   }
 
-  goToVisits():     void { this.router.navigate(['/patient/visits']); }
-  goToReminders():  void { this.router.navigate(['/patient/reminders']); }
-  requestAppt():    void { this.router.navigate(['/patient/reminders']); } // placeholder
+  goToVisits(): void { this.router.navigate(['/patient/visits']); }
 }

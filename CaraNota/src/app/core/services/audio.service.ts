@@ -1,13 +1,4 @@
-// core/services/audio.service.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Covers /api/audio endpoints.
-//
-// CHANGES vs previous version:
-//   ✅ Both endpoints now confirmed in final swagger (were missing before)
-//   ✅ Uses API constants
-//   ✅ AudioStatusDto — status field shape clarified
-// ─────────────────────────────────────────────────────────────────────────────
-
+// src/app/core/services/audio.service.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -19,19 +10,25 @@ export class AudioService {
   private http = inject(HttpClient);
 
   // POST /api/audio/upload  — multipart/form-data
-  // Fields: AudioFile (binary), VisitId (int)
-  // Call this after creating a Visit to start AI transcription.
-  uploadAudio(audioBlob: Blob, visitId: number): Observable<AudioRecordResponseDto> {
+  // Swagger fields: AudioFile (binary), VisitId (int32)
+  uploadAudio(audio: File | Blob, visitId: number): Observable<AudioRecordResponseDto> {
     const form = new FormData();
-    form.append('AudioFile', audioBlob, `visit-${visitId}.webm`);
-    form.append('VisitId', String(visitId));
+
+    if (audio instanceof File) {
+      // Real file upload — preserve original filename and MIME type exactly
+      form.append('AudioFile', audio, audio.name);
+    } else {
+      // Mic recording blob — give it a proper webm filename
+      form.append('AudioFile', audio, `visit-${visitId}-recording.webm`);
+    }
+
+    // VisitId must be an integer — append as plain number string, no quotes
+    form.append('VisitId', visitId.toString());
+
     return this.http.post<AudioRecordResponseDto>(API.AUDIO.UPLOAD, form);
   }
 
   // GET /api/audio/{visitId}/status
-  // Poll this after upload until status === 'Completed' or 'Failed'.
-  // Suggested polling interval: 5–10 seconds.
-  // Possible status values: 'Pending' | 'Processing' | 'Completed' | 'Failed'
   getStatus(visitId: number): Observable<AudioStatusDto> {
     return this.http.get<AudioStatusDto>(API.AUDIO.STATUS(visitId));
   }

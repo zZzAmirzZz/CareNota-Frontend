@@ -7,6 +7,14 @@ import { AppointmentService } from '../../../../core/services/appointment.servic
 import { VisitService } from '../../../../core/services/visit.service';
 import { Appointment, Visit } from '../../../../core/models/appointment.model';
 
+// Which appointment the modal is open for, and which mode was chosen
+type VisitMode = 'recording' | 'manual';
+
+interface ModeSelection {
+  appointment: Appointment;
+  mode: VisitMode | null; // null = modal open but no mode picked yet
+}
+
 @Component({
   selector: 'app-today-visit',
   standalone: true,
@@ -24,6 +32,9 @@ export class TodayVisit implements OnInit {
   error                = signal<string | null>(null);
   loadingAppointmentId = signal<number | null>(null);
 
+  // Modal state — set when the doctor clicks "Start Visit" on a card
+  modeSelection = signal<ModeSelection | null>(null);
+
   todayLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -32,31 +43,45 @@ export class TodayVisit implements OnInit {
     this.loadAppointments();
   }
 
-  loadAppointments(): void {
-    this.isLoading.set(true);
-    this.error.set(null);
+loadAppointments(): void {
+  this.isLoading.set(true);
+  this.error.set(null);
 
-    const { from, to } = this.appointmentService.getTodayRange();
+  const { from, to } = this.appointmentService.getTodayRange();
 
-    this.appointmentService.getByDateRange(from, to).subscribe({
-      next: (list: Appointment[]) => {
-        this.appointments.set(
-          list
-            .filter((a: Appointment) => a.status === 'Scheduled')
-            .sort((a: Appointment, b: Appointment) =>
-              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-            )
-        );
-        this.isLoading.set(false);
-      },
-      error: (err: any) => {
-        this.error.set(err?.message ?? 'Failed to load today\'s appointments.');
-        this.isLoading.set(false);
-      },
-    });
+  this.appointmentService.getByDateRange(from, to).subscribe({
+    next: (list: Appointment[]) => {
+      this.appointments.set(
+        list
+          // .filter((a: Appointment) => a.status === 'Scheduled')
+          .sort((a: Appointment, b: Appointment) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+          )
+      );
+      this.isLoading.set(false);
+    },
+    error: (err: any) => {
+      this.error.set(err?.message ?? 'Failed to load today\'s appointments.');
+      this.isLoading.set(false);
+    },
+  });
+}
+
+  // ── Step 1: open the mode-selection modal ──────────────────────────────────
+  openModeModal(appt: Appointment): void {
+    this.modeSelection.set({ appointment: appt, mode: null });
   }
 
-  startVisit(appt: Appointment): void {
+  closeModeModal(): void {
+    this.modeSelection.set(null);
+  }
+
+  // ── Step 2: doctor picks a mode → create visit → navigate ─────────────────
+  confirmMode(mode: VisitMode): void {
+    const selection = this.modeSelection();
+    if (!selection) return;
+
+    const appt = selection.appointment;
     this.loadingAppointmentId.set(appt.appointmentID);
     this.error.set(null);
 
@@ -66,6 +91,7 @@ export class TodayVisit implements OnInit {
     }).subscribe({
       next: (visit: Visit) => {
         this.loadingAppointmentId.set(null);
+        this.modeSelection.set(null);
 
         const patientState = {
           name:      appt.patientName,
@@ -75,13 +101,23 @@ export class TodayVisit implements OnInit {
           visitType: appt.appointmentType,
         };
 
-        this.router.navigate(
-          [`/doctor/recording/${visit.visitId}`],
-          { state: { patient: patientState } }
-        );
+        if (mode === 'recording') {
+          // Doctor wants to record — go to recording page
+          this.router.navigate(
+            [`/doctor/recording/${visit.visitID}`],
+            { state: { patient: patientState } }
+          );
+        } else {
+          // Manual entry — jump straight to visit-summary (no audio, no polling)
+          this.router.navigate(
+            [`/doctor/visit-summary/${visit.visitID}`],
+            { state: { patient: patientState, skipPolling: true } }
+          );
+        }
       },
       error: (err: any) => {
         this.loadingAppointmentId.set(null);
+        this.modeSelection.set(null);
         this.error.set(err?.error?.message ?? 'Could not start visit. Please try again.');
       },
     });

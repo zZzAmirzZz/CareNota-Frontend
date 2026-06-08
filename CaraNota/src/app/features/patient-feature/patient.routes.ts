@@ -27,7 +27,6 @@ export const PATIENT_ROUTES: Routes = [
   },
 
   // ── Single visit detail ───────────────────────────────────────────────────
-  // Navigated to via: this.router.navigate(['/patient/visit-detail', visitId])
   {
     path: 'visit-detail/:id',
     loadComponent: () =>
@@ -35,16 +34,6 @@ export const PATIENT_ROUTES: Routes = [
         m => m.VisitDetailComponent
       ),
     title: 'Visit Details — CareNota',
-  },
-
-  // ── Reminders ─────────────────────────────────────────────────────────────
-  {
-    path: 'reminders',
-    loadComponent: () =>
-      import('./pages/reminders/reminders.component').then(
-        m => m.RemindersComponent
-      ),
-    title: 'Reminders — CareNota',
   },
 
   // ── Profile ───────────────────────────────────────────────────────────────

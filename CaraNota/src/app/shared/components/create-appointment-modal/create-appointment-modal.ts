@@ -205,7 +205,10 @@ private fetchSlotsIfReady(): void {
   this.isLoadingSlots.set(true);
   this.error.set(null);
 
-  this.appointmentService.getAvailableSlots(doctorId, localDate).subscribe({
+ this.appointmentService.getAvailableSlots(
+  doctorId,
+  this.selectedDate()
+).subscribe({
     next: (slots) => {
       console.log('[FetchSlots] ✅ received slots:', slots);
       this.availableSlots.set(slots || []);
