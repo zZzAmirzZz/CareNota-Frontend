@@ -1,6 +1,13 @@
 // components/upcoming/upcoming.ts
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import{ Router} from '@angular/router';
 
 // ✅ Import from the single shared model — never redefine locally
 import { Appointment } from '../../../../../../core/models/appointment.model';
@@ -23,6 +30,8 @@ export class Upcoming {
   private readonly COLORS = [
     '#E07E7E','#7EB5E0','#7EC49E','#B07EE0','#E0C07E','#7E9EE0'
   ];
+
+private router = inject(Router);
 
   getAvatarColor(index: number): string {
     return this.COLORS[index % this.COLORS.length];
@@ -49,4 +58,7 @@ export class Upcoming {
   onCancel(appointmentId: number): void {
     this.cancelAppointment.emit(appointmentId);
   }
-}
+
+goHome(): void {
+  this.router.navigate(['/doctor/dashboard']);
+}}

@@ -153,10 +153,12 @@ export class VisitSummaryService {
     return this.http.get<Medication[]>(API.MEDICATION.LIST);
   }
 
-  // GET /Api/Medication/Search?Name=
-  searchMedications(name: string): Observable<Medication[]> {
-    return this.http.get<Medication[]>(API.MEDICATION.SEARCH, { params: { Name: name } });
-  }
+ // GET /Api/Medication/Search?Name=
+searchMedications(name: string): Observable<Medication[]> {
+  return this.http.get<any[]>(API.MEDICATION.SEARCH, { params: { Name: name } }).pipe(
+    map(list => (list ?? []).map(m => this.normalizeMedication(m)))
+  );
+}
 
   // GET /Api/Medication/Type/{Type}
   getMedicationsByType(type: string): Observable<Medication[]> {
@@ -187,17 +189,35 @@ export class VisitSummaryService {
 
   // POST /Api/Prescription
   createPrescription(dto: CreatePrescriptionDto): Observable<Prescription> {
-    return this.http.post<Prescription>(API.PRESCRIPTION.CREATE, dto);
+    return this.http.post<any>(API.PRESCRIPTION.CREATE, dto).pipe(
+      map(raw => this.normalizePrescription(raw))
+    );
   }
 
   // GET /Api/Prescription/{Id}
   getPrescriptionById(id: number): Observable<Prescription> {
-    return this.http.get<Prescription>(API.PRESCRIPTION.BY_ID(id));
+    return this.http.get<any>(API.PRESCRIPTION.BY_ID(id)).pipe(
+      map(raw => this.normalizePrescription(raw))
+    );
   }
 
   // GET /Api/Prescription/Visit/{VisitId}
-  getPrescriptionByVisit(visitId: number): Observable<Prescription> {
-    return this.http.get<Prescription>(API.PRESCRIPTION.BY_VISIT(visitId));
+  // Returns null (not an error) when the visit has no prescription yet (404).
+  getPrescriptionByVisit(visitId: number): Observable<Prescription | null> {
+    return this.http.get<any>(API.PRESCRIPTION.BY_VISIT(visitId)).pipe(
+      map(raw => {
+        if (!raw) return null;
+        // Backend may return a single object or a single-element array
+        const obj = Array.isArray(raw) ? raw[0] : raw;
+        if (!obj) return null;
+        return this.normalizePrescription(obj);
+      }),
+      catchError(err => {
+        // 404 = no prescription yet — this is normal, not an error
+        if (err.status === 404 || err.status === 400) return of(null);
+        throw err; // re-throw unexpected errors
+      })
+    );
   }
 
   // PUT /Api/Prescription/{Id}
@@ -229,10 +249,47 @@ export class VisitSummaryService {
   }
 
   // GET /Api/Prescription/{Id}/Medications
-  // ⚠️ Not in Swagger — backend confirmed it exists. Handled gracefully with catchError.
+  // ⚠️ No separate GET /Medications endpoint in Swagger.
+  //    Medications are embedded in GET /Api/Prescription/{Id} response.
+  //    Fetch the prescription and extract the medications array from it.
   getMedicationLines(prescriptionId: number): Observable<MedicationLine[]> {
-    return this.http.get<MedicationLine[]>(API.PRESCRIPTION.ADD_MEDICATION(prescriptionId));
+    return this.http.get<any>(API.PRESCRIPTION.BY_ID(prescriptionId)).pipe(
+      map(raw => {
+        // Backend embeds medications as raw.medications or raw.prescriptionMedications
+        const lines: any[] = raw.medications ?? raw.prescriptionMedications ?? [];
+        return lines.map(l => ({
+          medicationID:   l.medicationID   ?? l.medicationId   ?? l.id ?? 0,
+          medicationName: l.medicationName ?? l.name           ?? '',
+          dosage:         l.dosage         ?? null,
+          frequency:      l.frequency      ?? null,
+          route:          l.route          ?? null,
+          duration:       l.duration       ?? null,
+          notes:          l.notes          ?? null,
+        } as MedicationLine));
+      })
+    );
   }
+
+  // ── Private helpers ───────────────────────────────────────────────────────
+
+  // ⚠️ Backend returns prescriptionID (capital ID) not `id` — normalize defensively
+  private normalizePrescription(raw: any): Prescription {
+    if (!raw) return { id: 0, instructions: null, visitID: undefined };
+    return {
+      id:           raw.id ?? raw.prescriptionID ?? raw.prescriptionId ?? 0,
+      instructions: raw.instructions ?? null,
+      visitID:      raw.visitID ?? raw.visitId ?? undefined,
+    };
+  }
+  private normalizeMedication(raw: any): Medication {
+  return {
+    id:             raw.id ?? raw.medicationID ?? raw.medicationId ?? 0,
+    medicationName: raw.medicationName ?? raw.name ?? '',
+    medicationType: raw.medicationType ?? '',
+    description:    raw.description ?? null,
+    strength:       raw.strength ?? null,
+  };
+}
 
   // ── §12 LAB TEST ──────────────────────────────────────────────────────────
 

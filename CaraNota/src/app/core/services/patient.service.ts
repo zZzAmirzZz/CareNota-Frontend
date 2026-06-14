@@ -61,7 +61,7 @@ export class PatientService {
 
   // GET /Api/Visit/Patient/{PatientId}
   // ⚠️ Backend returns visitID (capital ID) — normalize to `id`.
-  // ⚠️ whenToSeekHelp and followUp added (new UpdateVisitDto fields).
+  // ⚠️ /Details endpoint includes doctorName, specialty, appointmentType — list endpoint may also.
   getVisits(patientId: number): Observable<PatientVisit[]> {
     return this.http
       .get<any[]>(API.VISIT.BY_PATIENT(patientId))
@@ -78,6 +78,10 @@ export class PatientService {
             whenToSeekHelp:  v.whenToSeekHelp  ?? null,
             followUp:        v.followUp        ?? null,
             appointmentID:   v.appointmentID   ?? v.appointmentId ?? undefined,
+            // Doctor/appointment info — present when backend embeds them
+            doctorName:      v.doctorName      ?? v.doctor?.fullName ?? null,
+            specialty:       v.specialty       ?? v.doctor?.specialty ?? null,
+            appointmentType: v.appointmentType ?? null,
           } as PatientVisit))
         )
       );

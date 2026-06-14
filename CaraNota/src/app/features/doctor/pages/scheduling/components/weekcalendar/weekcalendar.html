@@ -34,10 +34,18 @@
         <div></div>
         @for (day of weekDays; track day.date) {
           <div class="text-center py-3 border-l border-gray-100">
+            <!-- Short name on narrow screens -->
             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {{ day.name }}
+              {{ day.shortName }}
             </p>
-            <p class="text-sm font-bold text-gray-700 mt-0.5">{{ day.date }}</p>
+            <!-- Date number — highlighted when today -->
+            <p class="text-sm font-bold mt-0.5 w-7 h-7 flex items-center justify-center
+                      mx-auto rounded-full transition-colors"
+               [class.bg-\[#2C6FAC\]]="day.isToday"
+               [class.text-white]="day.isToday"
+               [class.text-gray-700]="!day.isToday">
+              {{ day.date }}
+            </p>
           </div>
         }
       </div>
@@ -61,19 +69,32 @@
                    [style.height.px]="rowHeight">
 
                 @for (evt of getEvents(dayIdx, slot.hour); track evt.id) {
-                  <div class="absolute left-1 right-1 rounded-lg px-2 py-1
+                  <!--
+                    Colors are applied via [style] so they work even when Tailwind
+                    has not pre-generated the dynamic class names at build time.
+                    getPalette() returns { bg, border, text } hex strings.
+                  -->
+                  <div class="absolute left-1 right-1 rounded-xl px-2 py-1
                               text-[11px] font-semibold cursor-pointer z-10
-                              shadow-sm select-none"
-                       [class.bg-\[#C8DCEF\]]="evt.color === 'blue'"
-                       [class.text-\[#3A6EA5\]]="evt.color === 'blue'"
-                       [class.bg-\[#F5C6CE\]]="evt.color === 'pink'"
-                       [class.text-\[#9B2335\]]="evt.color === 'pink'"
+                              shadow-sm hover:shadow-md hover:brightness-95
+                              transition-all select-none border-l-4 overflow-hidden"
+                       [style.background-color]="getPalette(evt).bg"
+                       [style.border-left-color]="getPalette(evt).border"
+                       [style.color]="getPalette(evt).text"
                        [style.top.px]="getTopOffset(slot.hour, evt.startHour)"
                        [style.height.px]="getEventHeight(evt.startHour, evt.endHour)">
-                    <p class="leading-tight">
+
+                    <!-- Time range -->
+                    <p class="leading-tight font-semibold opacity-80 truncate">
                       {{ formatEventTime(evt.startHour, evt.endHour) }}
                     </p>
-                    <p class="leading-tight truncate">{{ evt.patientName }}</p>
+
+                    <!-- Patient name — bold, slightly larger -->
+                    <p class="leading-tight font-bold text-[12px] truncate mt-0.5">
+                      {{ evt.patientName }}
+                    </p>
+
+
                   </div>
                 }
 

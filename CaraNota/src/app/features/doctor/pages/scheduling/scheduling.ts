@@ -1,4 +1,6 @@
 // scheduling/scheduling.ts
+import { Router } from '@angular/router';
+
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Upcoming } from './components/upcoming/upcoming';
@@ -15,6 +17,8 @@ import { DoctorNavbar } from '../../../../layout/doctor-layout/doctor-navbar/doc
 })
 export class Scheduling implements OnInit {
   private schedulingService = inject(SchedulingService);
+  private router = inject(Router);
+
 
   data      = signal<SchedulingData | null>(null);
   isLoading = signal(true);
@@ -56,4 +60,6 @@ export class Scheduling implements OnInit {
       error: () => this.error.set('Could not cancel appointment. Please try again.'),
     });
   }
+
+
 }

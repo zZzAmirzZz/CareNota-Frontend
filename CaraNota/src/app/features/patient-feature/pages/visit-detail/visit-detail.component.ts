@@ -15,6 +15,7 @@ import { forkJoin, of, switchMap, catchError } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/footer/footer.component';
+import { VisitSummaryService } from '../../../../core/services/visitsummary.service';
 
 interface MedicationLine {
   medicationID: number;
@@ -51,44 +52,48 @@ interface VisitDetail {
   templateUrl: './visit-detail.component.html',
 })
 export class VisitDetailComponent implements OnInit {
-  private route  = inject(ActivatedRoute);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private http   = inject(HttpClient);
-  private base   = environment.apiUrl;
+  private http = inject(HttpClient);
+  private visitSvc = inject(VisitSummaryService);
+  private base = environment.apiUrl;
 
-  visit       = signal<VisitDetail | null>(null);
+  visit = signal<VisitDetail | null>(null);
   medications = signal<MedicationLine[]>([]);
-  labTests    = signal<LabTest[]>([]);
+  labTests = signal<LabTest[]>([]);
 
-  isLoading       = signal(true);
-  isUploading     = signal(false);
-  uploadSuccess   = signal<string | null>(null);
-  error           = signal<string | null>(null);
+  isLoading = signal(true);
+  isUploading = signal(false);
+  uploadSuccess = signal<string | null>(null);
+  error = signal<string | null>(null);
 
   ngOnInit(): void {
     const visitId = Number(this.route.snapshot.paramMap.get('id'));
-    if (!visitId) { this.error.set('Invalid visit ID.'); this.isLoading.set(false); return; }
+    if (!visitId) {
+      this.error.set('Invalid visit ID.');
+      this.isLoading.set(false);
+      return;
+    }
     this.loadAll(visitId);
   }
 
   private loadAll(visitId: number): void {
     // GET /Api/Visit/{Id}/Details
-    const visit$ = this.http.get<VisitDetail>(`${this.base}/Api/Visit/${visitId}/Details`).pipe(
-      catchError(() => this.http.get<VisitDetail>(`${this.base}/Api/Visit/${visitId}`))
-    );
+    const visit$ = this.http
+      .get<VisitDetail>(`${this.base}/Api/Visit/${visitId}/Details`)
+      .pipe(catchError(() => this.http.get<VisitDetail>(`${this.base}/Api/Visit/${visitId}`)));
 
-    // GET /Api/Prescription/Visit/{visitId} → then medications
-    const meds$ = this.http.get<any>(`${this.base}/Api/Prescription/Visit/${visitId}`).pipe(
-      switchMap(p =>
-        this.http.get<MedicationLine[]>(`${this.base}/Api/Prescription/${p.id}/Medications`)
-      ),
-      catchError(() => of([]))
+    // GET /Api/Prescription/Visit/{visitId} → then medications via service
+    // (service reads medications from embedded data in GET /Api/Prescription/{Id})
+    const meds$ = this.visitSvc.getPrescriptionByVisit(visitId).pipe(
+      switchMap((p) => (p ? this.visitSvc.getMedicationLines(p.id) : of([]))),
+      catchError(() => of([])),
     );
 
     // GET /Api/LabTest/Visit/{visitId}
-    const labs$ = this.http.get<LabTest[]>(`${this.base}/Api/LabTest/Visit/${visitId}`).pipe(
-      catchError(() => of([]))
-    );
+    const labs$ = this.http
+      .get<LabTest[]>(`${this.base}/Api/LabTest/Visit/${visitId}`)
+      .pipe(catchError(() => of([])));
 
     forkJoin({ visit: visit$, meds: meds$, labs: labs$ }).subscribe({
       next: ({ visit, meds, labs }) => {
@@ -110,7 +115,7 @@ export class VisitDetailComponent implements OnInit {
    */
   onUploadResult(labTestId: number, event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file  = input.files?.[0];
+    const file = input.files?.[0];
     if (!file) return;
 
     const form = new FormData();
@@ -120,8 +125,14 @@ export class VisitDetailComponent implements OnInit {
     this.uploadSuccess.set(null);
 
     this.http.post(`${this.base}/Api/LabTest/${labTestId}/UploadResult`, form).subscribe({
-      next: ()  => { this.isUploading.set(false); this.uploadSuccess.set('Result uploaded successfully!'); },
-      error: () => { this.isUploading.set(false); this.error.set('Upload failed. Please try again.'); },
+      next: () => {
+        this.isUploading.set(false);
+        this.uploadSuccess.set('Result uploaded successfully!');
+      },
+      error: () => {
+        this.isUploading.set(false);
+        this.error.set('Upload failed. Please try again.');
+      },
     });
   }
 
@@ -133,17 +144,47 @@ export class VisitDetailComponent implements OnInit {
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  goBack(): void { this.router.navigate(['/patient/visits']); }
+  goBack(): void {
+    this.router.navigate(['/patient/visits']);
+  }
 
   /** Build a readable AI-style summary from SOAP fields */
   get soapSummaryLines(): string[] {
     const v = this.visit();
     if (!v) return [];
     const lines: string[] = [];
-    if (v.subjective)  lines.push('You visited the doctor because of:', ...v.subjective.split('\n').map(l => l.trim()).filter(Boolean));
-    if (v.objective)   lines.push('Doctor measured:', ...v.objective.split('\n').map(l => l.trim()).filter(Boolean));
-    if (v.assessment)  lines.push('What the doctor explained to you:', ...v.assessment.split('\n').map(l => l.trim()).filter(Boolean));
-    if (v.plan)        lines.push('The doctor discussed:', ...v.plan.split('\n').map(l => l.trim()).filter(Boolean));
+    if (v.subjective)
+      lines.push(
+        'You visited the doctor because of:',
+        ...v.subjective
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      );
+    if (v.objective)
+      lines.push(
+        'Doctor measured:',
+        ...v.objective
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      );
+    if (v.assessment)
+      lines.push(
+        'What the doctor explained to you:',
+        ...v.assessment
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      );
+    if (v.plan)
+      lines.push(
+        'The doctor discussed:',
+        ...v.plan
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      );
     return lines;
   }
 }

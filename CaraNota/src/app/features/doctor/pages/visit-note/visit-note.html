@@ -145,8 +145,8 @@
               placeholder="Instructions — e.g. Take after meals, avoid driving"
               class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800
                      focus:outline-none focus:ring-2 focus:ring-teal-300 transition"/>
-            <button type="button" (click)="createPrescription()"
-              [disabled]="prescriptionLoading()"
+<button type="button" (click)="createPrescription()"
+  [disabled]="prescriptionLoading() || !prescriptionInstructions.trim()"
               class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 text-white
                      text-sm font-semibold hover:bg-teal-700 transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed">
@@ -170,7 +170,21 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            Prescription #{{ prescriptionId() }} created — add medications below
+            Prescription #{{ prescriptionId() }} — add medications below
+          </div>
+
+          <!-- Edit instructions -->
+          <div class="flex gap-2">
+            <input [(ngModel)]="prescriptionInstructions"
+              placeholder="Instructions — e.g. Take after meals, avoid driving"
+              class="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm text-gray-800
+                     focus:outline-none focus:ring-2 focus:ring-teal-300 transition"/>
+            <button type="button" (click)="updateInstructions()"
+              [disabled]="prescriptionLoading()"
+              class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-semibold
+                     hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              Save
+            </button>
           </div>
 
           <!-- Saved medication lines -->
@@ -182,9 +196,12 @@
                     <span class="text-sm font-semibold text-sky-800">{{ m.name }}</span>
                     <span class="text-xs text-sky-600 ml-2">{{ m.dosage }} · {{ m.frequency }}</span>
                   </div>
-                  <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                  </svg>
+                  <button type="button" (click)="removeMedLine(m.medicationId)"
+                          class="text-sky-300 hover:text-red-500 transition-colors ml-3 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
                 </div>
               }
             </div>

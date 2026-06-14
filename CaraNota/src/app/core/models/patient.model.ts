@@ -113,6 +113,10 @@ export interface PatientVisit {
   whenToSeekHelp?: string | null;  // ← NEW — part of UpdateVisitDto now
   followUp?:       string | null;  // ← NEW
   appointmentID?: number;
+  // Doctor/appointment info — may be embedded by backend
+  doctorName?:     string | null;
+  specialty?:      string | null;
+  appointmentType?: string | null;
 }
 
 // ── Used by GET /api/Appointment/patient/{patientId} ─────────────────────────

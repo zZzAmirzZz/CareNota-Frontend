@@ -2,6 +2,7 @@
 //
 // Calls:
 //   GET /Api/Visit/Patient/{patientId}               → all visits
+//   GET /api/Appointment/{appointmentId}             → doctor name/specialty/type (fallback)
 //   GET /Api/Prescription/Visit/{visitId}            → prescription per visit
 //   GET /Api/Prescription/{id}/Medications           → medication names
 //   GET /Api/LabTest/Visit/{visitId}                 → lab test names
@@ -44,21 +45,16 @@ export class VisitsComponent implements OnInit {
   }
 
   private loadVisits(patientId: number): void {
-    // GET /Api/Visit/Patient/{patientId}
     this.patientService.getVisits(patientId).pipe(
       catchError(() => of([]))
     ).subscribe((rawVisits: any[]) => {
       if (!rawVisits.length) { this.isLoading.set(false); return; }
 
-      // Sort newest first
       const sorted = [...rawVisits].sort(
         (a, b) => +new Date(b.visitDate) - +new Date(a.visitDate)
       );
 
-      // Enrich each visit with prescription meds + lab tests
-      const enriched$ = sorted.map(v => this.enrichVisit(v));
-
-      forkJoin(enriched$).subscribe({
+      forkJoin(sorted.map(v => this.enrichVisit(v))).subscribe({
         next: cards => { this.visits.set(cards); this.isLoading.set(false); },
         error: ()   => { this.error.set('Failed to load visits.'); this.isLoading.set(false); },
       });
@@ -68,11 +64,13 @@ export class VisitsComponent implements OnInit {
   private enrichVisit(visit: any) {
     const base = environment.apiUrl;
 
-    // GET /Api/Prescription/Visit/{visitId}
+    // GET /Api/Prescription/Visit/{visitId} — 404 is normal (no prescription yet)
     const meds$ = this.http.get<any>(`${base}/Api/Prescription/Visit/${visit.id}`).pipe(
-      switchMap(p =>
-        this.http.get<any[]>(`${base}/Api/Prescription/${p.id}/Medications`)
-      ),
+      switchMap(p => {
+        const prescriptionId = Array.isArray(p) ? p[0]?.id : p?.id;
+        if (!prescriptionId) return of([]);
+        return this.http.get<any[]>(`${base}/Api/Prescription/${prescriptionId}/Medications`);
+      }),
       catchError(() => of([]))
     );
 
@@ -81,16 +79,26 @@ export class VisitsComponent implements OnInit {
       catchError(() => of([]))
     );
 
-    return forkJoin({ meds: meds$, labs: labs$ }).pipe(
-      catchError(() => of({ meds: [], labs: [] })),
-      switchMap(({ meds, labs }) => {
+    // Doctor info: use fields already embedded by backend, or fetch the appointment as fallback.
+    // /Api/Visit/Patient/{id} may not embed doctorName — /api/Appointment/{id} always has it.
+    const hasDoctorInfo = !!(visit.doctorName || visit.specialty);
+    const appt$ = hasDoctorInfo
+      ? of(null)
+      : (visit.appointmentID
+          ? this.http.get<any>(`${base}/api/Appointment/${visit.appointmentID}`)
+                     .pipe(catchError(() => of(null)))
+          : of(null));
+
+    return forkJoin({ meds: meds$, labs: labs$, appt: appt$ }).pipe(
+      catchError(() => of({ meds: [], labs: [], appt: null })),
+      switchMap(({ meds, labs, appt }) => {
         const card: VisitCardData = {
           id:              visit.id,
-          doctorName:      visit.doctorName      ?? 'Dr. Unknown',
-          specialty:       visit.specialty       ?? 'General Medicine',
+          doctorName:      visit.doctorName      ?? appt?.doctorName                        ?? 'Unknown Doctor',
+          specialty:       visit.specialty       ?? appt?.doctorSpecialty ?? appt?.specialty ?? 'General Medicine',
           visitDate:       visit.visitDate,
           visitTime:       visit.visitDate,
-          appointmentType: visit.appointmentType ?? 'Consultation',
+          appointmentType: visit.appointmentType ?? appt?.appointmentType                   ?? 'Consultation',
           summary:         visit.subjective      ?? '',
           medications:     (meds as any[]).map(m => m.medicationName ?? '').filter(Boolean),
           labTests:        (labs as any[]).map(l => l.labTestName    ?? '').filter(Boolean),
@@ -101,7 +109,6 @@ export class VisitsComponent implements OnInit {
     );
   }
 
-  /** Very simple: extract a date-like substring from the plan field */
   private extractFollowUp(plan: string): string | undefined {
     const match = plan.match(/\d{4}-\d{2}-\d{2}/);
     return match ? match[0] : undefined;

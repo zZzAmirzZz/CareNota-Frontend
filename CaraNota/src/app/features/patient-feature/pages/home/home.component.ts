@@ -106,35 +106,50 @@ export class HomeComponent implements OnInit {
   }
 
   private buildVisitCard(patientId: number, visit: any): void {
-    this.http
-      .get<any>(`${environment.apiUrl}/Api/Prescription/Visit/${visit.id}`)
-      .pipe(
-        switchMap(p =>
-          this.http.get<any[]>(`${environment.apiUrl}/Api/Prescription/${p.id}/Medications`)
-        ),
-        catchError(() => of([]))
-      )
-      .subscribe(meds => {
-        this.recentVisit.set({
-          id:              visit.id,
-          doctorName:      visit.doctorName ?? 'Dr. Unknown',
-          specialty:       visit.specialty  ?? 'General Medicine',
-          visitDate:       visit.visitDate,
-          visitTime:       visit.visitDate,
-          appointmentType: visit.appointmentType ?? 'Follow-up',
-          summary:         visit.subjective ?? '',
-          medications:     meds.map((m: any) => m.medicationName ?? ''),
-        });
+    const base = environment.apiUrl;
+
+    // Fetch prescription meds (404 is normal — no prescription yet)
+    const meds$ = this.http.get<any>(`${base}/Api/Prescription/Visit/${visit.id}`).pipe(
+      switchMap(p => {
+        const prescriptionId = Array.isArray(p) ? p[0]?.id : p?.id;
+        if (!prescriptionId) return of([]);
+        return this.http.get<any[]>(`${base}/Api/Prescription/${prescriptionId}/Medications`);
+      }),
+      catchError(() => of([]))
+    );
+
+    // Fetch appointment for doctor info if not already embedded in visit
+    const hasDoctorInfo = !!(visit.doctorName || visit.specialty);
+    const appt$ = hasDoctorInfo
+      ? of(null)
+      : (visit.appointmentID
+          ? this.http.get<any>(`${base}/api/Appointment/${visit.appointmentID}`)
+                     .pipe(catchError(() => of(null)))
+          : of(null));
+
+    forkJoin({ meds: meds$, appt: appt$ }).subscribe(({ meds, appt }) => {
+      this.recentVisit.set({
+        id:              visit.id,
+        doctorName:      visit.doctorName      ?? appt?.doctorName                        ?? 'Unknown Doctor',
+        specialty:       visit.specialty       ?? appt?.doctorSpecialty ?? appt?.specialty ?? 'Unknown Specialty',
+        visitDate:       visit.visitDate,
+        visitTime:       visit.visitDate,
+        appointmentType: visit.appointmentType ?? appt?.appointmentType                   ?? 'Consultation',
+        summary:         visit.subjective ?? '',
+        medications:     (meds as any[]).map((m: any) => m.medicationName ?? '').filter(Boolean),
       });
+    });
   }
 
   private loadActiveMeds(visitId: number): void {
     this.http
       .get<any>(`${environment.apiUrl}/Api/Prescription/Visit/${visitId}`)
       .pipe(
-        switchMap(p =>
-          this.http.get<any[]>(`${environment.apiUrl}/Api/Prescription/${p.id}/Medications`)
-        ),
+        switchMap(p => {
+          const prescriptionId = Array.isArray(p) ? p[0]?.id : p?.id;
+          if (!prescriptionId) return of([]);
+          return this.http.get<any[]>(`${environment.apiUrl}/Api/Prescription/${prescriptionId}/Medications`);
+        }),
         catchError(() => of([]))
       )
       .subscribe(meds => this.activeMedications.set((meds as any[]).length));

@@ -1,13 +1,5 @@
 // core/services/appointment.service.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Covers all endpoints under /api/Appointment (lowercase api, capital A in path)
-//
-// FIXES vs previous version:
-//   ✅ baseUrl now correctly set to /api/Appointment (was just apiUrl — caused 404s)
-//   ✅ getByDateRange — removed double-prefix bug
-//   ✅ cancelAppointment — removed double-prefix bug
-//   ✅ All methods now use API constants instead of raw strings
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -20,6 +12,7 @@ import {
   TimeSlot,
 } from '../models/appointment.model';
 import { API } from '../constants/api';
+import { formatLocalTime, formatLocalDate } from '../utils/date-time.util';
 
 @Injectable({ providedIn: 'root' })
 export class AppointmentService {
@@ -56,20 +49,37 @@ export class AppointmentService {
   }
 
   // GET /api/Appointment/date-range?from=&to=
+
+  // GET /api/Appointment/date-range?from=&to=
+  // ⚠️ from/to are now sent as naive local strings (no .toISOString()), matching backend convention
   getByDateRange(from: Date, to: Date): Observable<Appointment[]> {
+    const toNaiveLocal = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const s = String(d.getSeconds()).padStart(2, '0');
+      return `${y}-${m}-${day}T${h}:${min}:${s}`;
+    };
+
     return this.http.get<Appointment[]>(API.APPOINTMENT.DATE_RANGE, {
       params: {
-        from: from.toISOString(),
-        to:   to.toISOString(),
+        from: toNaiveLocal(from),
+        to:   toNaiveLocal(to),
       },
     });
   }
 
   // GET /api/Appointment/doctor/{id}/weekly?startOfWeek=
-  getDoctorWeekly(doctorId: number, startOfWeek: Date): Observable<Appointment[]> {
-    const params = new HttpParams().set('startOfWeek', startOfWeek.toISOString());
+   getDoctorWeekly(doctorId: number, startOfWeek: Date): Observable<Appointment[]> {
+    const y = startOfWeek.getFullYear();
+    const m = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+    const d = String(startOfWeek.getDate()).padStart(2, '0');
+    const params = new HttpParams().set('startOfWeek', `${y}-${m}-${d}T00:00:00`);
     return this.http.get<Appointment[]>(API.APPOINTMENT.DOCTOR_WEEKLY(doctorId), { params });
   }
+
 
   // GET /api/Appointment/doctor/{id}/available-slots?date=YYYY-MM-DD
 getAvailableSlots(
@@ -107,13 +117,14 @@ getAvailableSlots(
     return { from, to };
   }
 
-  toLocalTime(utcString: string): string {
-    return new Date(utcString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  toLocalTime(localString: string): string {
+    return formatLocalTime(localString);
   }
 
-  toLocalDate(utcString: string): string {
-    return new Date(utcString).toLocaleDateString([], {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    });
+  toLocalDate(localString: string): string {
+    return formatLocalDate(localString);
   }
 }
+
+
+

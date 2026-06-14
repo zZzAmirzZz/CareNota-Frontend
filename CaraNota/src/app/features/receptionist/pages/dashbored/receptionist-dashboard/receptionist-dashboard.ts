@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { Appointment } from '../../../../../core/models/appointment.model';
 import { AppointmentService } from '../../../../../core/services/appointment.service';
 import { ReceptionistNavbar } from '../../../receptionist-layout/receptionist-navbar/receptionist-navbar';
+import { localDateTimeToSortable } from '../../../../../core/utils/date-time.util';
 
 @Component({
   selector: 'app-receptionist-dashboard',
@@ -17,6 +18,23 @@ import { ReceptionistNavbar } from '../../../receptionist-layout/receptionist-na
 export class ReceptionistDashboard implements OnInit, OnDestroy {
   private svc    = inject(AppointmentService);
   private router = inject(Router);
+
+OnInit(): void {
+  console.log('Browser TZ:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+  console.log('Offset (min):', new Date().getTimezoneOffset());
+const d = new Date();
+console.log('TZ:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+console.log('Offset min:', d.getTimezoneOffset());
+console.log('Now ISO:', d.toISOString());
+console.log('Now local:', d.toString());
+  this.buildCalendar();
+  this.loadForDate(this.selectedDate());
+  this.timer = setInterval(() => this.currentTime.set(this.nowTime()), 60_000);
+}
+
+OnDestroy(): void {
+  clearInterval(this.timer);
+}
 
   // ── Calendar ──────────────────────────────────────────────────────────
   calendarMonth = new Date();
@@ -126,14 +144,14 @@ export class ReceptionistDashboard implements OnInit, OnDestroy {
     });
   }
 
-  private setAppointments(appts: Appointment[]): void {
-    const sorted = [...appts].sort(
-      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
-    this.allAppointments.set(sorted);
-    this.filteredAppointments.set(sorted);
-  }
+private setAppointments(appts: Appointment[]): void {
+  const sorted = [...appts].sort(
+    (a, b) => localDateTimeToSortable(a.startTime) - localDateTimeToSortable(b.startTime)
+  );
 
+  this.allAppointments.set(sorted);
+  this.filteredAppointments.set(sorted);
+}
   // ── Search ────────────────────────────────────────────────────────────
 
   onSearch(q: string): void {

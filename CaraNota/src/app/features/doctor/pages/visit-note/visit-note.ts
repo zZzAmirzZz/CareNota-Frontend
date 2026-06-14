@@ -23,8 +23,9 @@ import {
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { API } from '../../../../core/constants/api';
-import { VisitService } from '../../../../core/services/visit.service';
-import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap } from 'rxjs';
+import { UpdateVisitDto } from '../../../../core/models/visit.model';
+import { VisitService   } from '../../../../core/services/visit.service';
+import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap , tap} from 'rxjs';
 
 import { DoctorNavbar }        from '../../../../layout/doctor-layout/doctor-navbar/doctor-navbar';
 import { VisitSummaryService } from '../../../../core/services/visitsummary.service';
@@ -55,13 +56,15 @@ export class VisitNote implements OnInit {
   patientName = signal<string>('');
 
   // ── SOAP form ──────────────────────────────────────────────────────────────
-  soapForm: FormGroup = this.fb.group({
-    subjective: [''],
-    objective:  [''],
-    assessment: [''],
-    plan:       [''],
-    symptoms:   [''],
-  });
+soapForm: FormGroup = this.fb.group({
+  subjective:     [''],
+  objective:      [''],
+  assessment:     [''],
+  plan:           [''],
+  symptoms:       [''],
+  followUp:       [''],   // ← ADD — backend requires this
+  whenToSeekHelp: [''],   // ← ADD — send it too to be safe
+});
   isFinalizing = signal(false);
   finalizeError = signal<string | null>(null);
   finalizeSuccess = signal(false);
@@ -115,13 +118,17 @@ export class VisitNote implements OnInit {
     this.summaryService.getLabTestsByVisit(id).pipe(catchError(() => of([]))).subscribe(list => {
       this.savedLabTests.set(list.map(t => ({ id: t.id, name: t.labTestName })));
     });
-
-    this.summaryService.getPrescriptionByVisit(id).pipe(catchError(() => of(null))).subscribe(p => {
-      if (p) {
-        this.prescriptionId.set(p.id);
-        this.prescriptionInstructions = p.instructions ?? '';
-        // Load existing medication lines
-        this.summaryService.getMedicationLines(p.id).pipe(catchError(() => of([]))).subscribe(lines => {
+this.summaryService.getPrescriptionByVisit(id)
+  .pipe(
+    catchError(() => of(null))
+  )
+  .subscribe(p => {
+    if (p && p.id) {
+      this.prescriptionId.set(p.id);
+      this.prescriptionInstructions = p.instructions ?? '';
+      this.summaryService.getMedicationLines(p.id)
+        .pipe(catchError(() => of([])))
+        .subscribe(lines => {
           this.savedMedLines.set(lines.map(l => ({
             medicationId: l.medicationID,
             name:         l.medicationName ?? String(l.medicationID),
@@ -129,8 +136,8 @@ export class VisitNote implements OnInit {
             frequency:    l.frequency ?? '',
           })));
         });
-      }
-    });
+    }
+  });
 
     // Wire up medication search with debounce
     this.medSearch$.pipe(
@@ -139,9 +146,9 @@ export class VisitNote implements OnInit {
       switchMap(q => {
         if (!q.trim()) { this.medSearchResults.set([]); return of([]); }
         this.medSearchLoading.set(true);
-        return this.summaryService.searchMedications(q).pipe(
-          catchError(() => of([]))
-        );
+return this.summaryService.searchMedications(q).pipe(
+  catchError(() => of([]))
+);
       })
     ).subscribe(results => {
       this.medSearchResults.set(results as Medication[]);
@@ -187,29 +194,66 @@ export class VisitNote implements OnInit {
   }
 
   // ── Prescription ───────────────────────────────────────────────────────────
-  createPrescription(): void {
-    if (this.prescriptionId()) return; // already created
-    this.prescriptionLoading.set(true);
-    this.prescriptionError.set(null);
+createPrescription(): void {
+  if (this.prescriptionId()) return; // already created
 
-    this.summaryService.createPrescription({
-      instructions: this.prescriptionInstructions || '',
-      visitID: this.visitId(),
-    }).pipe(catchError(err => {
-      this.prescriptionError.set(err?.error?.message ?? 'Failed to create prescription.');
-      this.prescriptionLoading.set(false);
-      this.cdr.detectChanges();
-      return of(null);
-    })).subscribe(res => {
-      if (res) {
-        this.prescriptionId.set((res as any).id ?? (res as any).prescriptionID);
-      }
-      this.prescriptionLoading.set(false);
-      this.cdr.detectChanges();
-    });
+  const visitId = this.visitId();
+  if (!visitId) {
+    this.prescriptionError.set('Visit ID not found. Please refresh the page.');
+    return;
   }
 
+  const instructions = this.prescriptionInstructions.trim();
+  if (!instructions) {
+    this.prescriptionError.set('Instructions are required to create a prescription.');
+    return;
+  }
+
+  this.prescriptionLoading.set(true);
+  this.prescriptionError.set(null);
+
+  this.summaryService.createPrescription({
+    instructions,
+    visitID: visitId,
+  }).pipe(catchError(err => {
+    const msg = err?.error?.errors
+      ? Object.values(err.error.errors).flat().join(', ')
+      : err?.error?.title ?? `Failed to create prescription (${err.status}).`;
+    this.prescriptionError.set(msg);
+    this.prescriptionLoading.set(false);
+    this.cdr.detectChanges();
+    return of(null);
+  })).subscribe(res => {
+    if (res && res.id) {
+      this.prescriptionId.set(res.id);
+    } else if (res) {
+      this.summaryService.getPrescriptionByVisit(visitId)
+        .pipe(catchError(() => of(null)))
+        .subscribe(p => { if (p?.id) this.prescriptionId.set(p.id); });
+    }
+    this.prescriptionLoading.set(false);
+    this.cdr.detectChanges();
+  });
+}
+
   // ── Medication search ──────────────────────────────────────────────────────
+  updateInstructions(): void {
+    const id = this.prescriptionId();
+    if (!id) return;
+    this.prescriptionLoading.set(true);
+    this.summaryService.updatePrescription(id, { instructions: this.prescriptionInstructions })
+      .pipe(catchError(err => {
+        this.prescriptionError.set(err?.error?.message ?? 'Failed to update instructions.');
+        this.prescriptionLoading.set(false);
+        this.cdr.detectChanges();
+        return of(null);
+      }))
+      .subscribe(() => {
+        this.prescriptionLoading.set(false);
+        this.cdr.detectChanges();
+      });
+  }
+
   onMedSearchInput(): void {
     this.medSearch$.next(this.medSearchQuery);
   }
@@ -243,6 +287,8 @@ export class VisitNote implements OnInit {
       duration:  this.medDuration  || undefined,
       notes:     this.medNotes     || undefined,
     }).pipe(catchError(err => {
+        console.error('AddMedication 400 body:', JSON.stringify(err.error?.errors ?? err.error, null, 2));
+
       this.medAddError.set(err?.error?.message ?? 'Failed to add medication.');
       this.medAddLoading.set(false);
       this.cdr.detectChanges();
@@ -308,36 +354,47 @@ export class VisitNote implements OnInit {
   }
 
   // ── Finalize (PUT SOAP only) ───────────────────────────────────────────────
-  finalize(): void {
-    if (this.isFinalizing()) return;
-    this.isFinalizing.set(true);
-    this.finalizeError.set(null);
-    this.finalizeSuccess.set(false);
+finalize(): void {
+  if (this.isFinalizing()) return;
+  this.isFinalizing.set(true);
+  this.finalizeError.set(null);
+  this.finalizeSuccess.set(false);
 
-    const v = this.soapForm.value;
-    const dto: Record<string, string> = {};
-    if (v.subjective?.trim())  dto['subjective']  = v.subjective.trim();
-    if (v.objective?.trim())   dto['objective']   = v.objective.trim();
-    if (v.assessment?.trim())  dto['assessment']  = v.assessment.trim();
-    if (v.plan?.trim())        dto['plan']        = v.plan.trim();
-    if (v.symptoms?.trim())    dto['symptoms']    = v.symptoms.trim();
+  const v = this.soapForm.value;
 
-    this.visitService.updateVisit(this.visitId(), dto as any)
-      .pipe(catchError(err => {
-        this.finalizeError.set(err?.error?.title ?? err?.error?.message ?? 'Failed to save SOAP notes.');
-        this.isFinalizing.set(false);
-        this.cdr.detectChanges();
-        return of(null);
-      }))
-      .subscribe((res: any) => {
-        if (res !== null) {
-          this.finalizeSuccess.set(true);
-        }
-        this.isFinalizing.set(false);
-        this.cdr.detectChanges();
-      });
-  }
+  // FollowUp is REQUIRED by backend — always include it, even as empty string
+  const dto: UpdateVisitDto = {
+    followUp:       v.followUp      ?? '',
+    whenToSeekHelp: v.whenToSeekHelp ?? '',
+  };
 
+  // Optional fields — only add if filled
+  if (v.subjective?.trim())  dto.subjective  = v.subjective.trim();
+  if (v.objective?.trim())   dto.objective   = v.objective.trim();
+  if (v.assessment?.trim())  dto.assessment  = v.assessment.trim();
+  if (v.plan?.trim())        dto.plan        = v.plan.trim();
+  if (v.symptoms?.trim())    dto.symptoms    = v.symptoms.trim();
+
+  this.visitService.updateVisit(this.visitId(), dto)
+    .pipe(catchError(err => {
+      console.error('Full error body:', JSON.stringify(err.error, null, 2));
+      this.finalizeError.set(
+        err?.error?.errors
+          ? Object.values(err.error.errors).flat().join(', ')
+          : err?.error?.title ?? err?.error?.message ?? 'Failed to save SOAP notes.'
+      );
+      this.isFinalizing.set(false);
+      this.cdr.detectChanges();
+      return of(null);
+    }))
+    .subscribe(res => {
+      if (res !== null) {
+        this.finalizeSuccess.set(true);
+      }
+      this.isFinalizing.set(false);
+      this.cdr.detectChanges();
+    });
+}
   goBack(): void {
     this.router.navigate(['/doctor/today-visits']);
   }

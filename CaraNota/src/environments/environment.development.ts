@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://praising-ice-gravy.ngrok-free.dev'
+  apiUrl: 'https://carenota-hfcfbreqfeemf8dr.polandcentral-01.azurewebsites.net'
 };

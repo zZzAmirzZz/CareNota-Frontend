@@ -41,43 +41,92 @@
       </div>
     </div>
 
-    <!-- Cards Row -->
-    <div class="grid grid-cols-2 gap-6">
+   <!-- Cards Row -->
+<div class="grid grid-cols-2 gap-6">
 
-      <!-- Scheduling Card -->
-      <div class="bg-sky-card rounded-3xl p-6 flex flex-col gap-6 border border-sky-200">
-        <div>
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest bg-white px-3 py-1 rounded-full">
-            Schedule
-          </span>
-        </div>
-        <h2 class="text-2xl font-bold text-gray-800 text-center">Scheduling</h2>
-        <div class="flex justify-center">
-          <a routerLink="/doctor/scheduling"
-            class="bg-navy text-white font-semibold px-8 py-3 rounded-full text-sm
-                   hover:bg-navy-dark transition-colors shadow-md">
-            Show Schedule
-          </a>
-        </div>
-      </div>
+  <!-- Scheduling Card -->
+  <div class="relative bg-gradient-to-br from-slate-50 to-blue-50/60 rounded-3xl p-5
+              flex flex-col items-center text-center gap-3
+              border border-blue-100 shadow-sm overflow-hidden
+              hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
 
-      <!-- Patients Card -->
-      <div class="bg-sky-card rounded-3xl p-6 flex flex-col gap-6 border border-sky-200">
-        <div>
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest bg-white px-3 py-1 rounded-full">
-            Patients
-          </span>
-        </div>
-        <h2 class="text-2xl font-bold text-gray-800 text-center">Patients</h2>
-        <div class="flex justify-center">
-          <a routerLink="/doctor/patients"
-            class="bg-navy text-white font-semibold px-8 py-3 rounded-full text-sm
-                   hover:bg-navy-dark transition-colors shadow-md">
-            Show Patient
-          </a>
-        </div>
-      </div>
+    <svg class="absolute bottom-0 left-0 w-full opacity-20 pointer-events-none" viewBox="0 0 400 80" fill="none">
+      <path d="M0 40 Q100 10 200 40 Q300 70 400 40 L400 80 L0 80 Z" fill="#3b82f6"/>
+      <path d="M0 55 Q100 25 200 55 Q300 85 400 55 L400 80 L0 80 Z" fill="#93c5fd"/>
+    </svg>
 
+    <div class="w-14 h-14 rounded-full bg-blue-100/80 flex items-center justify-center
+                group-hover:bg-blue-200/80 transition-colors duration-300 relative z-10">
+      <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <circle cx="8" cy="14" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="14" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="16" cy="14" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="8" cy="18" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="18" r="1" fill="currentColor" stroke="none"/>
+      </svg>
     </div>
+
+    <div class="relative z-10">
+      <h2 class="text-lg font-bold text-gray-800 mb-1">Scheduling</h2>
+      <p class="text-sm text-gray-500 leading-relaxed max-w-[200px] mx-auto">
+        View  your calendar, appointments
+      </p>
+    </div>
+
+    <a routerLink="/doctor/scheduling"
+       class="relative z-10 flex items-center gap-2 bg-blue-600 text-white font-semibold
+              px-6 py-2.5 rounded-full text-sm hover:bg-blue-700 transition-colors
+              shadow-md shadow-blue-200 group-hover:shadow-blue-300">
+      Show Schedule
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- Patients Card -->
+  <div class="relative bg-gradient-to-br from-slate-50 to-blue-50/60 rounded-3xl p-5
+              flex flex-col items-center text-center gap-3
+              border border-blue-100 shadow-sm overflow-hidden
+              hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
+
+    <svg class="absolute bottom-0 left-0 w-full opacity-20 pointer-events-none" viewBox="0 0 400 80" fill="none">
+      <path d="M0 40 Q100 10 200 40 Q300 70 400 40 L400 80 L0 80 Z" fill="#3b82f6"/>
+      <path d="M0 55 Q100 25 200 55 Q300 85 400 55 L400 80 L0 80 Z" fill="#93c5fd"/>
+    </svg>
+
+    <div class="w-14 h-14 rounded-full bg-blue-100/80 flex items-center justify-center
+                group-hover:bg-blue-200/80 transition-colors duration-300 relative z-10">
+      <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+        <path d="M16 3.13a4 4 0 010 7.75"/>
+      </svg>
+    </div>
+
+    <div class="relative z-10">
+      <h2 class="text-lg font-bold text-gray-800 mb-1">Patients</h2>
+      <p class="text-sm text-gray-500 leading-relaxed max-w-[200px] mx-auto">
+        View and manage patient profiles, history, and notes.
+      </p>
+    </div>
+
+    <a routerLink="/doctor/patients"
+       class="relative z-10 flex items-center gap-2 bg-blue-600 text-white font-semibold
+              px-6 py-2.5 rounded-full text-sm hover:bg-blue-700 transition-colors
+              shadow-md shadow-blue-200 group-hover:shadow-blue-300">
+      Show Patients
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+
+</div>
   </main>
 </div>

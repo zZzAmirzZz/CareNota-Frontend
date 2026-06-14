@@ -227,3 +227,4 @@ export interface CreateDiagnosisDto {
   diagnosisName: string;
   visitID:       number;
 }
+

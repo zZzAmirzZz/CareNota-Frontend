@@ -53,9 +53,9 @@ export class VisitService {
 
   // PUT /Api/Visit/{Id}
   // Body: UpdateVisitDto — includes whenToSeekHelp and followUp (new Swagger fields).
-  updateVisit(id: number, dto: UpdateVisitDto): Observable<void> {
-    return this.http.put<void>(API.VISIT.BY_ID(id), dto);
-  }
+updateVisit(id: number, dto: UpdateVisitDto): Observable<any> {
+  return this.http.put<any>(API.VISIT.BY_ID(id), dto);
+}
 
   // DELETE /Api/Visit/{Id}
   deleteVisit(id: number): Observable<void> {

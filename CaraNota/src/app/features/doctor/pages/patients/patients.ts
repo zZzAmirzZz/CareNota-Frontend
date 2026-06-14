@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { PatientsSidebar } from './components/patients-sidebar/patients-sidebar';
 import { PatientHeader } from './components/patient-header/patient-header';
+import { DoctorNavbar } from '../../../../layout/doctor-layout/doctor-navbar/doctor-navbar';
 import { PatientTabs } from './components/patient-tabs/patient-tabs';
 import { Medication, PatientViewModel, PatientAppointment } from '../../../../core/models/patient.model';
 import { PatientService } from '../../../../core/services/patient.service';
@@ -15,6 +16,7 @@ import { PatientService } from '../../../../core/services/patient.service';
     RouterModule,
     PatientsSidebar,
     PatientHeader,
+    DoctorNavbar,
     PatientTabs,
   ],
   templateUrl: './patients.html',

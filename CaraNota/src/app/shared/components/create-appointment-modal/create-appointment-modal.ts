@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-
+import { buildLocalDateTime } from '../../../core/utils/date-time.util';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { DoctorService, Doctor } from '../../../core/services/doctor.service';
 import { PatientService } from '../../../core/services/patient.service';
@@ -157,22 +157,22 @@ export class CreateAppointmentModal implements OnInit, OnDestroy {
     });
   }
 
-onDoctorChange(value: string): void {
-  console.log('[DoctorChange] raw value from <select>:', value);
+  onDoctorChange(value: string): void {
+    console.log('[DoctorChange] raw value from <select>:', value);
 
-  const id = value ? parseInt(value, 10) : null;
+    const id = value ? parseInt(value, 10) : null;
 
-  if (id && id > 0) {
-    console.log('[DoctorChange] ✅ parsed doctorId:', id);
-    this.selectedDoctorId.set(id);
-    this.resetSlots();
-    this.fetchSlotsIfReady();
-  } else {
-    console.log('[DoctorChange] ❌ invalid id');
-    this.selectedDoctorId.set(null);
-    this.resetSlots();
+    if (id && id > 0) {
+      console.log('[DoctorChange] ✅ parsed doctorId:', id);
+      this.selectedDoctorId.set(id);
+      this.resetSlots();
+      this.fetchSlotsIfReady();
+    } else {
+      console.log('[DoctorChange] ❌ invalid id');
+      this.selectedDoctorId.set(null);
+      this.resetSlots();
+    }
   }
-}
 
   onDateChange(value: string): void {
     // value is already YYYY-MM-DD from the date input
@@ -182,85 +182,90 @@ onDoctorChange(value: string): void {
     this.fetchSlotsIfReady();
   }
 
-private resetSlots(): void {
+  private resetSlots(): void {
     this.selectedSlot.set(null);
     this.availableSlots.set([]);
   }
 
-private fetchSlotsIfReady(): void {
-  const doctorId = this.selectedDoctorId();
-  const dateStr = this.selectedDate();
+  private fetchSlotsIfReady(): void {
+    const doctorId = this.selectedDoctorId();
+    const dateStr  = this.selectedDate();
 
-  if (!doctorId || !dateStr) {
-    return;
+    if (!doctorId || !dateStr) {
+      return;
+    }
+
+    this.isLoadingSlots.set(true);
+    this.error.set(null);
+
+    this.appointmentService.getAvailableSlots(
+      doctorId,
+      dateStr
+    ).subscribe({
+      next: (slots) => {
+        console.log('[AvailableSlots] raw:', slots);
+        this.availableSlots.set(slots || []);
+        this.isLoadingSlots.set(false);
+      },
+      error: (err) => {
+        console.error(err);
+        this.error.set('Could not load available slots.');
+        this.isLoadingSlots.set(false);
+      }
+    });
   }
 
-  this.isLoadingSlots.set(true);
-  this.error.set(null);
-
-  this.appointmentService.getAvailableSlots(
-    doctorId,
-    dateStr
-  ).subscribe({
-    next: (slots) => {
-      this.availableSlots.set(slots || []);
-      this.isLoadingSlots.set(false);
-    },
-    error: (err) => {
-      console.error(err);
-      this.error.set('Could not load available slots.');
-      this.isLoadingSlots.set(false);
-    }
-  });
-}
   selectSlot(slot: TimeSlot): void {
     this.selectedSlot.set(slot);
   }
 
   // ── Submit ────────────────────────────────────────────────────────────
 
-submit(): void {
-  const slot           = this.selectedSlot();
-  const doctorId       = this.selectedDoctorId();
-  const patient        = this.selectedPatient();
-  const patientId      = this.preselectedPatientId ?? patient?.id ?? null;
-  const receptionistId = this.authService.getReceptionistId();
+  submit(): void {
+    const slot           = this.selectedSlot();
+    const doctorId       = this.selectedDoctorId();
+    const patient        = this.selectedPatient();
+    const patientId      = this.preselectedPatientId ?? patient?.id ?? null;
+    const receptionistId = this.authService.getReceptionistId();
 
-  if (!slot || !doctorId || !patientId) {
-    this.error.set('Please select a patient, doctor, date and time slot.');
-    return;
+    if (!slot || !doctorId || !patientId) {
+      this.error.set('Please select a patient, doctor, date and time slot.');
+      return;
+    }
+
+    // slot.start / slot.end are assumed to be "HH:mm" or "HH:mm:ss" time-only strings
+    // from /available-slots. buildLocalDateTime combines them with the selected
+    // date into a naive local datetime string, e.g. "2026-06-15T13:00:00" (no 'Z').
+const dto: CreateAppointmentDto = {
+  startTime: slot.start,
+  endTime:   slot.end,
+  appointmentType: this.appointmentType(),
+  patientID:       patientId,
+  doctorID:        doctorId,
+  receptionistID:  receptionistId || 1,
+};
+
+    console.log('[Submit] DTO being sent:', dto);
+
+    this.isSubmitting.set(true);
+    this.error.set(null);
+
+    this.appointmentService.createAppointment(dto).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.created.emit();
+        // Optional: show success message
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        console.error('[CreateAppointment] Error:', err);
+        this.error.set(err?.error?.message || 'Failed to create appointment. Please try again.');
+      },
+    });
   }
 
-  const dto: CreateAppointmentDto = {
-    startTime:       new Date(slot.start).toISOString(),
-    endTime:         new Date(slot.end).toISOString(),
-    appointmentType: this.appointmentType(),
-    patientID:       patientId,
-    doctorID:        doctorId,
-    receptionistID:  receptionistId || 1,   // ← Fallback to 1 if not logged in as receptionist
-  };
-
-  console.log('[Submit] DTO being sent:', dto);
-
-  this.isSubmitting.set(true);
-  this.error.set(null);
-
-  this.appointmentService.createAppointment(dto).subscribe({
-    next: () => {
-      this.isSubmitting.set(false);
-      this.created.emit();
-      // Optional: show success message
-    },
-    error: (err) => {
-      this.isSubmitting.set(false);
-      console.error('[CreateAppointment] Error:', err);
-      this.error.set(err?.error?.message || 'Failed to create appointment. Please try again.');
-    },
-  });
-}
-
-  formatSlotTime(utcString: string): string {
-    return this.appointmentService.toLocalTime(utcString);
+  formatSlotTime(localString: string): string {
+    return this.appointmentService.toLocalTime(localString);
   }
 
   close(): void {

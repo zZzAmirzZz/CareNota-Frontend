@@ -128,4 +128,14 @@ loadAppointments(): void {
   formatTime(utc: string): string {
     return new Date(utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
+
+
+  // Returns tailwind classes for the status badge
+statusClass(status: string): string {
+  switch (status) {
+    case 'Completed': return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'Cancelled': return 'bg-red-50 text-red-600 border-red-200';
+    default:          return 'bg-green-50 text-green-700 border-green-200'; // Scheduled
+  }
+}
 }

@@ -29,16 +29,14 @@ export interface CreateVisitDto {
 }
 
 // ── PUT /Api/Visit/{Id} ───────────────────────────────────────────────────────
-// ⚠️ `whenToSeekHelp` and `followUp` are NEW fields in the updated Swagger.
-//    Previously the comment said `followUpDate` — correct field name is `followUp`.
 export interface UpdateVisitDto {
   subjective?:      string | null;
   objective?:       string | null;
   assessment?:      string | null;
   plan?:            string | null;
   symptoms?:        string | null;
-  whenToSeekHelp?:  string | null;   // ← NEW
-  followUp?:        string | null;   // ← NEW (was wrongly named followUpDate before)
+  whenToSeekHelp?:  string | null;
+  followUp?:        string | null;
 }
 
 // ── Summary DTOs  /api/visits/{visitId}/summary ───────────────────────────────

@@ -19,14 +19,6 @@ export class DoctorProfile implements OnInit {
   error     = signal<string | null>(null);
   initials  = signal('DR');
 
-  // No stats endpoint exists in the swagger yet — show placeholders
-  stats = [
-    { label: 'Total Patients', value: '—', icon: 'patients' },
-    { label: 'This Month',     value: '—', icon: 'month'    },
-    { label: 'Avg. Rating',    value: '—', icon: 'star'     },
-    { label: 'Years Active',   value: '—', icon: 'years'    },
-  ];
-
   ngOnInit(): void {
     this.doctorService.resolveDoctorProfile().subscribe({
       next: (doc: Doctor) => {
