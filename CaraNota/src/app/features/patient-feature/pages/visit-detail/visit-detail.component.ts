@@ -11,7 +11,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, of, switchMap, catchError } from 'rxjs';
+import { forkJoin, of, switchMap, map, catchError } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/footer/footer.component';
@@ -77,14 +77,13 @@ export class VisitDetailComponent implements OnInit {
     this.loadAll(visitId);
   }
 
-  private loadAll(visitId: number): void {
+ private loadAll(visitId: number): void {
     // GET /Api/Visit/{Id}/Details
     const visit$ = this.http
       .get<VisitDetail>(`${this.base}/Api/Visit/${visitId}/Details`)
       .pipe(catchError(() => this.http.get<VisitDetail>(`${this.base}/Api/Visit/${visitId}`)));
 
     // GET /Api/Prescription/Visit/{visitId} → then medications via service
-    // (service reads medications from embedded data in GET /Api/Prescription/{Id})
     const meds$ = this.visitSvc.getPrescriptionByVisit(visitId).pipe(
       switchMap((p) => (p ? this.visitSvc.getMedicationLines(p.id) : of([]))),
       catchError(() => of([])),
@@ -95,9 +94,40 @@ export class VisitDetailComponent implements OnInit {
       .get<LabTest[]>(`${this.base}/Api/LabTest/Visit/${visitId}`)
       .pipe(catchError(() => of([])));
 
-    forkJoin({ visit: visit$, meds: meds$, labs: labs$ }).subscribe({
+    forkJoin({ visit: visit$, meds: meds$, labs: labs$ }).pipe(
+      switchMap(({ visit, meds, labs }) => {
+        const hasDoctorInfo = !!(visit?.doctorName || visit?.specialty);
+        const appointmentID = (visit as any)?.appointmentID;
+
+        if (hasDoctorInfo || !appointmentID) {
+          return of({ visit, meds, labs });
+        }
+
+        // GET /api/Appointment/{id} → GET /api/Doctor/{doctorID}
+        return this.http.get<any>(`${this.base}/api/Appointment/${appointmentID}`).pipe(
+          switchMap(appt => {
+            if (!appt?.doctorID) return of(appt);
+            return this.http.get<any>(`${this.base}/api/Doctor/${appt.doctorID}`).pipe(
+              map(doc => ({ ...appt, doctorSpecialty: doc?.specialty, doctorName: doc?.fullName })),
+              catchError(() => of(appt))
+            );
+          }),
+          map(appt => ({
+            visit: {
+              ...visit,
+              doctorName: visit?.doctorName ?? appt?.doctorName ?? 'Unknown Doctor',
+              specialty:  visit?.specialty  ?? appt?.doctorSpecialty ?? appt?.specialty ?? 'Unknown Specialty',
+              appointmentType: visit?.appointmentType ?? appt?.appointmentType ?? 'Consultation',
+            },
+            meds,
+            labs,
+          })),
+          catchError(() => of({ visit, meds, labs }))
+        );
+      })
+    ).subscribe({
       next: ({ visit, meds, labs }) => {
-        this.visit.set(visit);
+        this.visit.set(visit as VisitDetail);
         this.medications.set(meds as MedicationLine[]);
         this.labTests.set(labs as LabTest[]);
         this.isLoading.set(false);
@@ -108,7 +138,6 @@ export class VisitDetailComponent implements OnInit {
       },
     });
   }
-
   /**
    * POST /Api/LabTest/{Id}/UploadResult  (multipart/form-data)
    * Called when user selects a file via the "Upload your results" button.

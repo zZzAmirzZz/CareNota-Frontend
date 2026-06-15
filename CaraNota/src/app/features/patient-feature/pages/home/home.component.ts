@@ -7,9 +7,8 @@
 //       /Api/Prescription/{id}/Medications       → active medication count
 
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { forkJoin, of, catchError, switchMap } from 'rxjs';
+import { forkJoin, of, catchError, switchMap , map} from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import { PatientService }     from '../../../../core/services/patient.service';
@@ -26,7 +25,7 @@ import { UpcomingAppointmentComponent, UpcomingAppointmentData }
   selector: 'app-patient-home',
   standalone: true,
   imports: [
-    CommonModule, RouterModule,
+     RouterModule,
     NavbarComponent, FooterComponent,
     StatCardComponent, VisitCardComponent, UpcomingAppointmentComponent,
   ],
@@ -105,7 +104,7 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  private buildVisitCard(patientId: number, visit: any): void {
+ private buildVisitCard(patientId: number, visit: any): void {
     const base = environment.apiUrl;
 
     // Fetch prescription meds (404 is normal — no prescription yet)
@@ -118,13 +117,21 @@ export class HomeComponent implements OnInit {
       catchError(() => of([]))
     );
 
-    // Fetch appointment for doctor info if not already embedded in visit
+    // Fetch appointment → doctor for specialty/name if not already embedded in visit
     const hasDoctorInfo = !!(visit.doctorName || visit.specialty);
     const appt$ = hasDoctorInfo
       ? of(null)
       : (visit.appointmentID
-          ? this.http.get<any>(`${base}/api/Appointment/${visit.appointmentID}`)
-                     .pipe(catchError(() => of(null)))
+          ? this.http.get<any>(`${base}/api/Appointment/${visit.appointmentID}`).pipe(
+              switchMap(appt => {
+                if (!appt?.doctorID) return of(appt);
+                return this.http.get<any>(`${base}/api/Doctor/${appt.doctorID}`).pipe(
+                  map(doc => ({ ...appt, doctorSpecialty: doc?.specialty, doctorName: doc?.fullName })),
+                  catchError(() => of(appt))
+                );
+              }),
+              catchError(() => of(null))
+            )
           : of(null));
 
     forkJoin({ meds: meds$, appt: appt$ }).subscribe(({ meds, appt }) => {

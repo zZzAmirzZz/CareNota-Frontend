@@ -10,10 +10,9 @@
 // Builds VisitCardData[] for display.
 
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, of, switchMap, catchError } from 'rxjs';
+import { forkJoin, of, switchMap, catchError , map } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { PatientService }  from '../../../../core/services/patient.service';
 import { AuthService }     from '../../../../core/services/auth.service';
@@ -25,7 +24,7 @@ import { VisitCardComponent, VisitCardData }
 @Component({
   selector: 'app-patient-visits',
   standalone: true,
-  imports: [CommonModule, NavbarComponent, FooterComponent, VisitCardComponent],
+  imports: [ NavbarComponent, FooterComponent, VisitCardComponent],
   templateUrl: './visits.component.html',
 })
 export class VisitsComponent implements OnInit {
@@ -61,7 +60,7 @@ export class VisitsComponent implements OnInit {
     });
   }
 
-  private enrichVisit(visit: any) {
+ private enrichVisit(visit: any) {
     const base = environment.apiUrl;
 
     // GET /Api/Prescription/Visit/{visitId} — 404 is normal (no prescription yet)
@@ -79,14 +78,21 @@ export class VisitsComponent implements OnInit {
       catchError(() => of([]))
     );
 
-    // Doctor info: use fields already embedded by backend, or fetch the appointment as fallback.
-    // /Api/Visit/Patient/{id} may not embed doctorName — /api/Appointment/{id} always has it.
+    // Doctor info: use fields already embedded by backend, or fetch appointment → doctor as fallback.
     const hasDoctorInfo = !!(visit.doctorName || visit.specialty);
     const appt$ = hasDoctorInfo
       ? of(null)
       : (visit.appointmentID
-          ? this.http.get<any>(`${base}/api/Appointment/${visit.appointmentID}`)
-                     .pipe(catchError(() => of(null)))
+          ? this.http.get<any>(`${base}/api/Appointment/${visit.appointmentID}`).pipe(
+              switchMap(appt => {
+                if (!appt?.doctorID) return of(appt);
+                return this.http.get<any>(`${base}/api/Doctor/${appt.doctorID}`).pipe(
+                  map(doc => ({ ...appt, doctorSpecialty: doc?.specialty, doctorName: doc?.fullName })),
+                  catchError(() => of(appt))
+                );
+              }),
+              catchError(() => of(null))
+            )
           : of(null));
 
     return forkJoin({ meds: meds$, labs: labs$, appt: appt$ }).pipe(
