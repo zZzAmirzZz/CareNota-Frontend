@@ -4,7 +4,6 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { ngrokInterceptor } from './core/interceptors/ngrok.interceptor';
 
 
 export const appConfig: ApplicationConfig = {
@@ -12,7 +11,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(
-           withInterceptors([authInterceptor, errorInterceptor, ngrokInterceptor])
+           withInterceptors([authInterceptor, errorInterceptor])
     )
   ]
 };
