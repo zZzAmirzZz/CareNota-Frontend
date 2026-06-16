@@ -26,16 +26,14 @@ jobs:
         working-directory: ./CaraNota
         run: npm run build -- --configuration production
 
-      - name: Show dist folder contents
-        if: always()
+      - name: Create startup script
         run: |
-          echo "=== dist folder ==="
-          find ./CaraNota/dist -type f 2>/dev/null | head -30 || echo "NO DIST FOLDER"
+          echo '{"scripts": {"start": "serve -s browser -l 8080"}, "dependencies": {"serve": "^14.0.0"}}' > ./CaraNota/dist/CaraNota/package.json
 
       - name: Zip dist output
         run: |
-          cd ./CaraNota/dist/CaraNota/browser
-          zip -r ../../../../app.zip .
+          cd ./CaraNota/dist/CaraNota
+          zip -r ../../../app.zip .
 
       - name: Login to Azure
         uses: azure/login@v2
