@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./CareNota
         run: npm ci
-
+ 
       - name: Build Angular app
         working-directory: ./CareNota
         run: npm run build -- --configuration production
