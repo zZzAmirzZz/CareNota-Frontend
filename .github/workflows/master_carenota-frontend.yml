@@ -27,13 +27,14 @@ jobs:
         run: npm run build -- --configuration production
 
       - name: Show dist folder contents
+        if: always()
         run: |
           echo "=== dist folder ==="
-          find ./CaraNota/dist -type f | head -30
+          find ./CaraNota/dist -type f 2>/dev/null | head -30 || echo "NO DIST FOLDER"
 
       - name: Zip dist output
         run: |
-          cd ./CaraNota/dist/cara-nota/browser
+          cd ./CaraNota/dist/CaraNota/browser
           zip -r ../../../../app.zip .
 
       - name: Login to Azure
