@@ -19,11 +19,11 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        working-directory: ./CareNota
+        working-directory: ./CaraNota
         run: npm ci
  
       - name: Build Angular app
-        working-directory: ./CareNota
+        working-directory: ./CaraNota
         run: npm run build -- --configuration production
 
       - name: Deploy to Azure App Service
@@ -31,4 +31,4 @@ jobs:
         with:
           app-name: 'carenota-frontend'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./CareNota/dist/cara-nota/browser
+          package: ./CaraNota/dist/cara-nota/browser
