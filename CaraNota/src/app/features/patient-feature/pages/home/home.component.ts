@@ -3,12 +3,15 @@
 // Data sources:
 //   GET /Api/Visit/Patient/{patientId}           → total visits + recent visit
 //   GET /api/Appointment/patient/{patientId}     → upcoming (Scheduled) appointments
-//   GET /Api/Prescription/Visit/{visitId} +
-//       /Api/Prescription/{id}/Medications       → active medication count
+//   GET /Api/Prescription/Visit/{visitId}        → prescription (medications embedded inside)
+//
+// ⚠️  FIX: There is NO separate GET /Api/Prescription/{id}/Medications endpoint.
+//     Medications are embedded in the prescription object itself under
+//     raw.medications or raw.prescriptionMedications.
 
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { forkJoin, of, catchError, switchMap , map} from 'rxjs';
+import { forkJoin, of, catchError, switchMap, map } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import { PatientService }     from '../../../../core/services/patient.service';
@@ -25,7 +28,7 @@ import { UpcomingAppointmentComponent, UpcomingAppointmentData }
   selector: 'app-patient-home',
   standalone: true,
   imports: [
-     RouterModule,
+    RouterModule,
     NavbarComponent, FooterComponent,
     StatCardComponent, VisitCardComponent, UpcomingAppointmentComponent,
   ],
@@ -80,7 +83,6 @@ export class HomeComponent implements OnInit {
             new Date(sorted[0].visitDate).toLocaleDateString('en-CA')
           );
           this.buildVisitCard(patientId, sorted[0]);
-          this.loadActiveMeds(sorted[0].id);
         }
 
         const apptList = appointments as any[];
@@ -104,18 +106,15 @@ export class HomeComponent implements OnInit {
     });
   }
 
- private buildVisitCard(patientId: number, visit: any): void {
+  private buildVisitCard(patientId: number, visit: any): void {
     const base = environment.apiUrl;
 
-    // Fetch prescription meds (404 is normal — no prescription yet)
-    const meds$ = this.http.get<any>(`${base}/Api/Prescription/Visit/${visit.id}`).pipe(
-      switchMap(p => {
-        const prescriptionId = Array.isArray(p) ? p[0]?.id : p?.id;
-        if (!prescriptionId) return of([]);
-        return this.http.get<any[]>(`${base}/Api/Prescription/${prescriptionId}/Medications`);
-      }),
-      catchError(() => of([]))
-    );
+    // ✅ FIX: GET /Api/Prescription/Visit/{visitId} returns the prescription object
+    //    with medications EMBEDDED inside it — there is no separate /Medications GET.
+    //    Extract from raw.medications or raw.prescriptionMedications array.
+    const prescription$ = this.http
+      .get<any>(`${base}/Api/Prescription/Visit/${visit.id}`)
+      .pipe(catchError(() => of(null)));
 
     // Fetch appointment → doctor for specialty/name if not already embedded in visit
     const hasDoctorInfo = !!(visit.doctorName || visit.specialty);
@@ -134,7 +133,21 @@ export class HomeComponent implements OnInit {
             )
           : of(null));
 
-    forkJoin({ meds: meds$, appt: appt$ }).subscribe(({ meds, appt }) => {
+    forkJoin({ prescription: prescription$, appt: appt$ }).subscribe(({ prescription, appt }) => {
+      // ✅ Medications are embedded in the prescription response — not a separate call
+      const rawPrescription = Array.isArray(prescription) ? prescription[0] : prescription;
+      const medLines: any[] = rawPrescription?.medications
+        ?? rawPrescription?.prescriptionMedications
+        ?? [];
+
+      // Each item may be { medicationName, dosage, ... } or { medication: { medicationName } }
+      const medicationNames = medLines
+        .map((m: any) => m.medicationName ?? m.medication?.medicationName ?? m.name ?? '')
+        .filter(Boolean);
+
+      // ✅ Set activeMedications count from the same data — no second HTTP call needed
+      this.activeMedications.set(medicationNames.length);
+
       this.recentVisit.set({
         id:              visit.id,
         doctorName:      visit.doctorName      ?? appt?.doctorName                        ?? 'Unknown Doctor',
@@ -143,23 +156,9 @@ export class HomeComponent implements OnInit {
         visitTime:       visit.visitDate,
         appointmentType: visit.appointmentType ?? appt?.appointmentType                   ?? 'Consultation',
         summary:         visit.subjective ?? '',
-        medications:     (meds as any[]).map((m: any) => m.medicationName ?? '').filter(Boolean),
+        medications:     medicationNames,
       });
     });
-  }
-
-  private loadActiveMeds(visitId: number): void {
-    this.http
-      .get<any>(`${environment.apiUrl}/Api/Prescription/Visit/${visitId}`)
-      .pipe(
-        switchMap(p => {
-          const prescriptionId = Array.isArray(p) ? p[0]?.id : p?.id;
-          if (!prescriptionId) return of([]);
-          return this.http.get<any[]>(`${environment.apiUrl}/Api/Prescription/${prescriptionId}/Medications`);
-        }),
-        catchError(() => of([]))
-      )
-      .subscribe(meds => this.activeMedications.set((meds as any[]).length));
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

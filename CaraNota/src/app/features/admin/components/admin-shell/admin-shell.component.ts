@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { CommonModule } from '@angular/common';
 import { AdminService } from '../../services/admin.service';
 import { AdminProfile } from '../../models/admin.model';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-shell',
@@ -13,6 +14,8 @@ import { AdminProfile } from '../../models/admin.model';
 export class AdminShellComponent implements OnInit {
   private adminService = inject(AdminService);
   private router       = inject(Router);
+    private authService  = inject(AuthService);   // ← add this
+
 
   profile: AdminProfile | null = null;
   dropdownOpen = false;
@@ -40,9 +43,11 @@ export class AdminShellComponent implements OnInit {
 
   logout(): void {
     this.dropdownOpen = false;
+        this.authService.logout();   // ← handles clearing + redirect
+
     // Clear tokens then redirect to login
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+localStorage.removeItem('access_token');   // TOKEN_KEY
+localStorage.removeItem('refresh_token');  // REFRESH_KEY
     this.router.navigate(['/auth/login']);
   }
 

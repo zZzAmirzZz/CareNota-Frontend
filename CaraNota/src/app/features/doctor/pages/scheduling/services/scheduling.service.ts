@@ -84,9 +84,10 @@ export class SchedulingService {
       .filter(a => this.isToday(a.startTime) && a.status === 'Scheduled')
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-    // Calendar grid — all non-cancelled appointments this week
+    // ✅ Calendar grid — only TODAY's non-cancelled appointments
+    // The weekly endpoint returns the full week, but we only display today's column.
     const calendarEvents: CalendarEvent[] = weekly
-      .filter(a => a.status !== 'Cancelled')
+      .filter(a => a.status !== 'Cancelled' && this.isToday(a.startTime))
       .map(a => this.toCalendarEvent(a));
 
     const doctorName = weekly[0]?.doctorName ?? all[0]?.doctorName ?? 'Doctor';

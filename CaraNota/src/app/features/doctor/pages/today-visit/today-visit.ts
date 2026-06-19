@@ -7,6 +7,8 @@ import { AppointmentService } from '../../../../core/services/appointment.servic
 import { VisitService } from '../../../../core/services/visit.service';
 import { Appointment } from '../../../../core/models/appointment.model';
 import { Visit } from '../../../../core/models/visit.model';
+import { AuthService } from '../../../../core/services/auth.service';
+
 
 // Which appointment the modal is open for, and which mode was chosen
 type VisitMode = 'recording' | 'manual';
@@ -27,6 +29,8 @@ export class TodayVisit implements OnInit {
   private appointmentService  = inject(AppointmentService);
   private visitService        = inject(VisitService);
   private router              = inject(Router);
+  private auth = inject(AuthService);
+
 
   appointments         = signal<Appointment[]>([]);
   isLoading            = signal(true);
@@ -44,18 +48,30 @@ export class TodayVisit implements OnInit {
     this.loadAppointments();
   }
 
+// today-visit.ts
+
 loadAppointments(): void {
   this.isLoading.set(true);
   this.error.set(null);
 
+  const doctorId = this.auth.getDoctorId(); // inject AuthService
+  if (!doctorId) {
+    this.error.set('Doctor ID not found. Please log in again.');
+    this.isLoading.set(false);
+    return;
+  }
+
   const { from, to } = this.appointmentService.getTodayRange();
 
-  this.appointmentService.getByDateRange(from, to).subscribe({
+  this.appointmentService.getByDoctor(doctorId).subscribe({
     next: (list: Appointment[]) => {
       this.appointments.set(
         list
-          // .filter((a: Appointment) => a.status === 'Scheduled')
-          .sort((a: Appointment, b: Appointment) =>
+          .filter((a: Appointment) => {
+            const t = new Date(a.startTime).getTime();
+            return t >= from.getTime() && t <= to.getTime();
+          })
+          .sort((a, b) =>
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
           )
       );

@@ -37,8 +37,9 @@ export function egyptianPhone(control: AbstractControl): ValidationErrors | null
  * Used on every NotEmpty() field that can still receive spaces from the user.
  */
 export function noWhitespace(control: AbstractControl): ValidationErrors | null {
-  const isBlank = (control.value ?? '').trim().length === 0;
-  return isBlank ? { whitespace: true } : null;
+  const v = control.value ?? '';
+  if (v.length === 0) return null; // ← allow empty (field is optional)
+  return v.trim().length === 0 ? { whitespace: true } : null;
 }
 
 /**
