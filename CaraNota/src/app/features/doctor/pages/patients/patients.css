@@ -10,7 +10,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
-  min-height: 0; /* ← critical: lets flex children shrink below content size */
+  min-height: 0;
 }
 
 .detail-panel {
@@ -18,6 +18,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0; /* ← same fix for this level */
+  min-height: 0;
   background: white;
 }

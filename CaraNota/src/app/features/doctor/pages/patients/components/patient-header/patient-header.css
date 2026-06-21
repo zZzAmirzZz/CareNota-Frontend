@@ -1,3 +1,9 @@
+/* ← Tells the detail-panel flex column: this header is fixed size, don't stretch */
+:host {
+  display: block;
+  flex-shrink: 0;
+}
+
 .patient-header {
   padding: 24px 28px 0;
   display: flex;
@@ -77,6 +83,7 @@
   border: 1px solid #fecaca;
   border-radius: 12px;
   padding: 14px 18px;
+  margin: 0 28px 0; /* keep horizontal alignment with the rest */
 }
 
 .allergy-icon {

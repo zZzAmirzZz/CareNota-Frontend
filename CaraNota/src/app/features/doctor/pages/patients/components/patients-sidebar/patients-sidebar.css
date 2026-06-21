@@ -1,3 +1,10 @@
+/* ← Use flex:none + overflow:hidden instead of hardcoded calc height */
+:host {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
 .sidebar {
   width: 300px;
   min-width: 300px;
@@ -5,7 +12,8 @@
   border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 72px);
+  /* removed: height: calc(100vh - 72px) ← this was fighting the flex layout */
+  height: 100%;
   padding: 24px 16px 16px;
 }
 
@@ -51,6 +59,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-height: 0; /* ← lets the list shrink and scroll */
 }
 
 .patient-item {
@@ -132,6 +141,7 @@
   border-top: 1px solid #e2e8f0;
   margin-top: 12px;
   transition: color 0.15s;
+  flex-shrink: 0; /* ← go-home link always visible at bottom */
 }
 
 .go-home:hover {
